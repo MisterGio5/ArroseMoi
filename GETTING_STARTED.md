@@ -1,265 +1,131 @@
-# 🚀 Getting Started - Push to GitHub
+# Getting Started - Push to GitHub & Deploy
 
-This guide helps you set up your GitHub repository and deploy on Unraid.
+This guide helps you set up your GitHub repository and deploy ArroseMoi on Unraid.
 
-## Step 1: Prepare Your Code
-
-### Update docker-compose.yml
-
-Replace `YOUR_GITHUB_USERNAME` with your actual GitHub username:
+## Step 1: Initialize Git and Push
 
 ```bash
-# Replace in docker-compose.yml
-sed -i '' 's/YOUR_GITHUB_USERNAME/your-actual-username/g' docker-compose.yml
+cd /Users/giovanni/Documents/Application/ArroseMoi
 
-# Or manually edit and replace these placeholders:
-# - ghcr.io/YOUR_GITHUB_USERNAME/arrosemoi/backend:latest
-# - ghcr.io/YOUR_GITHUB_USERNAME/arrosemoi/frontend:latest
-# - https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/arrosemoi/...
-```
-
-### Update unraid/arrosemoi.xml
-
-Replace `YOUR_GITHUB_USERNAME` in the template:
-
-```bash
-sed -i '' 's/YOUR_GITHUB_USERNAME/your-actual-username/g' unraid/arrosemoi.xml
-```
-
-## Step 2: Initialize Git (if not already)
-
-```bash
-cd /Users/giovanni/Documents/Vscode/Test\ application/Application\ JS/arrosemoi-app
-
-# Check if Git is initialized
+# Check current state
 git status
 
-# If not initialized, do this:
-git init
+# Add all files
 git add .
 git commit -m "Initial commit: ArroseMoi application"
 ```
 
-## Step 3: Create GitHub Repository
+## Step 2: Create GitHub Repository
 
 1. Go to https://github.com/new
 2. Fill in:
-   - **Repository name:** `arrosemoi`
-   - **Description:** "🌱 Plant management and watering reminders application"
-   - **Visibility:** Public (required for GitHub Container Registry)
+   - **Repository name:** `ArroseMoi`
+   - **Description:** "Plant management and watering reminders application"
+   - **Visibility:** Public (required for ghcr.io public access)
    - **Initialize:** Leave unchecked
 3. Click **Create repository**
 
-## Step 4: Connect and Push
-
-Copy the commands from GitHub (they'll look like):
+## Step 3: Connect and Push
 
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/arrosemoi.git
+git remote add origin https://github.com/MisterGio5/ArroseMoi.git
 git branch -M main
 git push -u origin main
 ```
 
 If you get a permissions error, use a Personal Access Token:
+1. GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
+2. Create a token with `repo` and `write:packages` scopes
+3. Use it as password when prompted
 
-1. Go to GitHub > Settings > Developer settings > Personal access tokens
-2. Create a new token with `repo` and `write:packages` scopes
-3. Use it as password when GitBash prompts
+## Step 4: Verify GitHub Actions
 
-## Step 5: Enable GitHub Container Registry
+1. Go to `https://github.com/MisterGio5/ArroseMoi/actions`
+2. Wait for the workflow to complete (triggered automatically on push to `main`)
+3. Once done, your Docker image is available at:
+   ```
+   ghcr.io/mistergio5/arrosemoi:latest
+   ```
 
-By default, your images will be pushed to `ghcr.io`.
+Check your packages at: `https://github.com/MisterGio5?tab=packages`
 
-**First push:**
-```bash
-# GitHub Actions will automatically build and push images
-# Just wait for the workflow to complete
-```
+> **Note:** If the repository is private, go to the package settings and change visibility to public, or configure Unraid to authenticate with ghcr.io.
 
-Check at: `https://github.com/YOUR_USERNAME/arrosemoi/actions`
+## Step 5: Deploy on Unraid
 
-Once images are pushed, verify at:
-```
-https://ghcr.io/v2/YOUR_USERNAME/arrosemoi/tags/list
-```
+See the [README.md](./README.md#deployment-on-unraid) section "Deployment on Unraid" for 3 methods:
+- **Method 1:** Add Container via Unraid UI
+- **Method 2:** Unraid XML Template
+- **Method 3:** Docker Compose via SSH
 
-## Step 6: Deploy on Unraid
-
-Follow the [UNRAID_DEPLOYMENT.md](./UNRAID_DEPLOYMENT.md) guide:
-
-```bash
-# SSH to Unraid
-ssh root@YOUR_UNRAID_IP
-
-# Create app directory
-mkdir -p /mnt/user/appdata/arrosemoi/data
-cd /mnt/user/appdata/arrosemoi
-
-# Download docker-compose.yml
-wget https://raw.githubusercontent.com/YOUR_USERNAME/arrosemoi/main/docker-compose.yml
-
-# Create .env file (see UNRAID_DEPLOYMENT.md for details)
-cat > .env << EOF
-JWT_SECRET=your-secret-key-here
-CORS_ORIGIN=http://YOUR_UNRAID_IP
-VITE_API_URL=http://YOUR_UNRAID_IP:3001/api
-DATA_PATH=/mnt/user/appdata/arrosemoi/data
-ICON_URL=https://raw.githubusercontent.com/YOUR_USERNAME/arrosemoi/main/public/logo.png
-EOF
-
-# Start
-docker compose pull
-docker compose up -d
-
-# Access at http://YOUR_UNRAID_IP
-```
-
-## What's Deployed
-
-✅ **GitHub Repository:** Your code with Git history  
-✅ **GitHub Actions:** Automatic Docker image builds  
-✅ **GitHub Container Registry:** Public Docker images  
-✅ **Docker Compose:** Services orchestration  
-✅ **Unraid:** Single entry with frontend + backend services  
-
-## Directory Structure After Setup
-
-```
-Your Unraid Server:
-/mnt/user/appdata/arrosemoi/
-├── docker-compose.yml    ← Downloaded from GitHub
-├── .env                  ← Configuration (never commit to Git)
-└── data/
-    └── app.sqlite       ← Database (persistent)
-```
+Or see the detailed guide: [UNRAID_DEPLOYMENT.md](./UNRAID_DEPLOYMENT.md)
 
 ## Development Workflow
 
 ### Make Changes
 
 ```bash
-cd /Users/giovanni/Documents/Vscode/Test\ application/Application\ JS/arrosemoi-app
+cd /Users/giovanni/Documents/Application/ArroseMoi
 
-# Edit files
-nano src/pages/Dashboard.jsx  # or use VS Code
-
-# Test locally
-npm run dev
-
-# Commit and push
+# Edit files, then:
 git add .
-git commit -m "Feature: Add watering statistics"
+git commit -m "Feature: description of change"
 git push origin main
 
-# GitHub Actions will automatically:
-# 1. Build new Docker images
-# 2. Push to ghcr.io
+# GitHub Actions automatically:
+# 1. Builds new Docker image
+# 2. Pushes to ghcr.io/mistergio5/arrosemoi:latest
 ```
 
 ### Update on Unraid
 
-On your Unraid server:
 ```bash
+# SSH to Unraid
+ssh root@YOUR_UNRAID_IP
+
+# If using Docker Compose:
 cd /mnt/user/appdata/arrosemoi
-
-# Get new images
 docker compose pull
-
-# Restart services
 docker compose up -d
 
-# View logs
-docker compose logs -f
+# If using Unraid UI:
+# Docker tab > ArroseMoi > Force Update
 ```
 
-## Structure of Your Project
+## Project Structure
 
 ```
-arrosemoi/
+ArroseMoi/
 ├── .github/workflows/
-│   └── build-ghcr.yml           ← Auto build and push to ghcr.io
-├── src/                         ← React frontend
-├── server/                      ← Node.js backend
+│   └── docker-build.yml        # CI/CD: build & push to ghcr.io
+├── src/                        # React frontend
+├── server/                     # Node.js backend
 ├── unraid/
-│   └── arrosemoi.xml           ← Template for Unraid catalog
-├── docker-compose.yml          ← Production deployment
-├── Dockerfile.frontend         ← Frontend image
-├── Dockerfile.backend          ← Backend image
-├── .dockerignore               ← Docker build exclusions
-├── .gitignore                  ← Git exclusions
-├── .env.example                ← Example frontend env
-├── server/.env.example         ← Example backend env
-├── nginx.conf                  ← Nginx config
-├── README.md                   ← Main documentation
-└── UNRAID_DEPLOYMENT.md        ← Unraid setup guide
+│   ├── arrosemoi.xml          # Unraid template
+│   └── icon.svg               # Unraid icon
+├── Dockerfile                  # Multi-stage build (single image)
+├── docker-compose.yml          # Production deployment
+├── .dockerignore
+├── .gitignore
+├── README.md                   # Main documentation
+├── GETTING_STARTED.md          # This file
+└── UNRAID_DEPLOYMENT.md        # Detailed Unraid guide
 ```
 
 ## Common Commands
 
 ```bash
-# GitHub - view actions
-git log --oneline
+# Git
 git status
+git log --oneline
 git push origin main
 
-# Docker - manage on Unraid
-docker compose ps
-docker compose logs -f
-docker compose restart
-docker compose down
-docker image ls
+# Docker on Unraid
+docker logs arrosemoi
+docker restart arrosemoi
+docker compose pull && docker compose up -d
 
-# Database - backup
+# Database backup
 cp /mnt/user/appdata/arrosemoi/data/app.sqlite \
    /mnt/user/appdata/arrosemoi/data/app.sqlite.backup
 ```
-
-## Troubleshooting
-
-### GitHub Actions fail to build
-- Check: `GitHub > Actions` tab
-- Ensure repo is Public
-- Verify Dockerfiles exist in root
-
-### Images don't appear on ghcr.io
-- Wait 2-3 minutes after GitHub Actions completes
-- Check: `GitHub > Packages` or visit directly
-- Try: `docker pull ghcr.io/YOUR_USERNAME/arrosemoi/frontend:latest`
-
-### Can't pull images on Unraid
-- Ensure Unraid has internet access
-- Try: `docker logout ghcr.io && docker login ghcr.io`
-- Use your GitHub username and Personal Access Token
-
-### Containers won't start
-- Check `.env` file value
-- View logs: `docker compose logs -f`
-- Check disk space: `df -h /mnt/user`
-
-## Next Steps
-
-1. ✅ GitHub repository created
-2. ✅ Code pushed (`git push origin main`)
-3. ✅ GitHub Actions building images
-4. ✅ Images on ghcr.io
-5. ✅ Deployed on Unraid
-6. 🎉 Development workflow established!
-
-For updates to your app, just:
-```bash
-# Make changes locally
-git push origin main
-# → GitHub Actions builds
-# → Push to ghcr.io
-# → Pull and restart on Unraid
-```
-
----
-
-## Detailed Guides
-
-- **Development:** See `README.md`
-- **Unraid Details:** See `UNRAID_DEPLOYMENT.md`
-- **Troubleshooting:** See `README.md` troubleshooting section
-
-**Happy coding and deploying! 🌱**

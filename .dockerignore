@@ -1,17 +1,58 @@
+# Dependencies
 node_modules
-dist
-npm-debug.log
-.DS_Store
-.env
-.env.local
+server/node_modules
+
+# Git
 .git
 .gitignore
-README.md
+
+# IDE
 .vscode
 .idea
-*.log
-.next
-coverage
+*.sw?
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+dist
 build
-.cache
-pnpm-debug.log
+coverage
+
+# Database files
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+data/
+server/data/
+
+# Documentation
+README.md
+GETTING_STARTED.md
+UNRAID_DEPLOYMENT.md
+LICENSE
+
+# Docker
+Dockerfile
+Dockerfile.*
+docker-compose.yml
+.dockerignore
+
+# CI/CD
+.github
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Unraid
+unraid/
+
+# Claude
+.claude/

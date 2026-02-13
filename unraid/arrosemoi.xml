@@ -1,71 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Container version="2">
   <Name>ArroseMoi</Name>
-  <Repository>ghcr.io/YOUR_GITHUB_USERNAME/arrosemoi/frontend</Repository>
+  <Repository>ghcr.io/mistergio5/arrosemoi:latest</Repository>
   <Registry>https://ghcr.io</Registry>
   <Network>bridge</Network>
   <MyIP/>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/YOUR_GITHUB_USERNAME/arrosemoi</Support>
-  <Project>https://github.com/YOUR_GITHUB_USERNAME/arrosemoi</Project>
+  <Support>https://github.com/MisterGio5/ArroseMoi</Support>
+  <Project>https://github.com/MisterGio5/ArroseMoi</Project>
   <Overview>
-    🌱 ArroseMoi - Plant watering management application
-    
+    ArroseMoi - Plant watering management application.
     Full-featured web app for managing your plants and watering schedules.
-    
-    Features:
-    ✅ Plant catalog with search
-    ✅ Smart watering reminders
-    ✅ User authentication
-    ✅ Real-time statistics
-    ✅ Responsive design
+    Features: Plant catalog, smart watering reminders, user authentication, statistics, responsive design.
   </Overview>
-  <Category>Tools</Category>
-  <WebUI>http://[IP]:[PORT:80]/</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/arrosemoi/main/unraid/arrosemoi.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/arrosemoi/main/public/logo.png</Icon>
+  <Category>Tools: HomeAutomation:</Category>
+  <WebUI>http://[IP]:[PORT:3001]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/MisterGio5/ArroseMoi/main/unraid/arrosemoi.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/MisterGio5/ArroseMoi/main/unraid/icon.svg</Icon>
   <ExtraParams/>
   <PostArgs/>
   <CPUset/>
-  <DateInstalled>1970-01-01T00:00:00Z</DateInstalled>
+  <DateInstalled/>
   <DonateText/>
   <DonateLink/>
   <Description>
-    🌱 ArroseMoi - Plant Management and Watering Application
-    
+    ArroseMoi - Plant Management and Watering Application.
     A complete web application for managing your plant collection and automated watering reminders.
-    
-    Features:
-    • Complete plant catalog with search and filters
-    • Smart watering reminders based on plant needs
-    • User authentication and profiles
-    • Real-time statistics and insights
-    • Responsive design (works on all devices)
-    • SQLite database persistence
-    • Docker-based deployment
-    
-    Technology Stack:
-    • Frontend: React 18 + Vite + Tailwind CSS
-    • Backend: Node.js 20 + Express
-    • Database: SQLite
-    • Deployment: Docker + Unraid
-    
-    Installation:
-    1. Fill in your GitHub username in configuration
-    2. Fill in your JWT secret (generate a random string)
-    3. Apply and wait for containers to start
-    4. Access at http://YOUR_UNRAID_IP
-    
-    Note: This template uses Docker Compose to manage both frontend and backend services.
-    For detailed setup instructions, see: https://github.com/YOUR_GITHUB_USERNAME/arrosemoi
+    Single container serving both the web UI and API.
+    Technology Stack: React 18 + Vite + Tailwind CSS, Node.js 20 + Express, SQLite.
   </Description>
   <Networking>
     <Mode>bridge</Mode>
     <Publish>
       <Port>
-        <HostPort>80</HostPort>
-        <ContainerPort>80</ContainerPort>
+        <HostPort>3001</HostPort>
+        <ContainerPort>3001</ContainerPort>
         <Protocol>tcp</Protocol>
       </Port>
     </Publish>
@@ -73,56 +43,87 @@
   <Data>
     <Volume>
       <HostDir>/mnt/user/appdata/arrosemoi/data</HostDir>
-      <ContainerDir>/app/data</ContainerDir>
+      <ContainerDir>/data</ContainerDir>
       <Mode>rw</Mode>
     </Volume>
   </Data>
   <Environment>
     <Variable>
+      <Name>PORT</Name>
+      <Value>3001</Value>
+    </Variable>
+    <Variable>
+      <Name>JWT_SECRET</Name>
+      <Value>change_this_to_a_random_string</Value>
+    </Variable>
+    <Variable>
+      <Name>DATABASE_PATH</Name>
+      <Value>/data/app.sqlite</Value>
+    </Variable>
+    <Variable>
       <Name>TZ</Name>
       <Value>Europe/Paris</Value>
-      <Mode/>
     </Variable>
   </Environment>
   <Labels/>
-  <Config 
-    Name="WebUI Port" 
-    Target="HostPort" 
-    Default="80" 
-    Mode="bridge" 
-    Description="Port for accessing the web interface" 
-    Type="Port" 
-    Display="always" 
-    Required="true" 
+  <Config
+    Name="Web UI Port"
+    Target="3001"
+    Default="3001"
+    Mode="tcp"
+    Description="Port for accessing the web interface and API. Change both host and container port if you modify the PORT environment variable."
+    Type="Port"
+    Display="always"
+    Required="true"
     Mask="false"/>
-  <Config 
-    Name="API Port" 
-    Target="8080" 
-    Default="3001" 
-    Mode="" 
-    Description="Backend API port (usually not exposed)" 
-    Type="Port" 
-    Display="advanced" 
-    Required="false" 
+  <Config
+    Name="App Data"
+    Target="/data"
+    Default="/mnt/user/appdata/arrosemoi/data"
+    Mode="rw"
+    Description="Directory for persistent data (SQLite database)"
+    Type="Path"
+    Display="always"
+    Required="true"
     Mask="false"/>
-  <Config 
-    Name="App Data" 
-    Target="HostDir" 
-    Default="/mnt/user/appdata/arrosemoi" 
-    Mode="rw" 
-    Description="Directory for persistent data (database)" 
-    Type="Path" 
-    Display="always" 
-    Required="true" 
+  <Config
+    Name="Port"
+    Target="PORT"
+    Default="3001"
+    Mode=""
+    Description="Application port (must match the container port above)"
+    Type="Variable"
+    Display="always"
+    Required="true"
     Mask="false"/>
-  <Config 
-    Name="Timezone" 
-    Target="TZ" 
-    Default="Europe/Paris" 
-    Mode="" 
-    Description="Container timezone" 
-    Type="Variable" 
-    Display="advanced" 
-    Required="false" 
+  <Config
+    Name="JWT Secret"
+    Target="JWT_SECRET"
+    Default="change_this_to_a_random_string"
+    Mode=""
+    Description="Secret key for JWT authentication. Generate a random string of 32+ characters."
+    Type="Variable"
+    Display="always"
+    Required="true"
+    Mask="true"/>
+  <Config
+    Name="Database Path"
+    Target="DATABASE_PATH"
+    Default="/data/app.sqlite"
+    Mode=""
+    Description="Path to the SQLite database file inside the container"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+  <Config
+    Name="Timezone"
+    Target="TZ"
+    Default="Europe/Paris"
+    Mode=""
+    Description="Container timezone (e.g. Europe/Paris, America/New_York)"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
     Mask="false"/>
 </Container>

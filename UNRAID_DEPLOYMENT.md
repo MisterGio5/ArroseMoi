@@ -1,377 +1,326 @@
-# 🏠 Deployment on Unraid
+# Deployment on Unraid
 
-Guide for deploying ArroseMoi on your Unraid server using Docker Compose with GitHub Container Registry.
+Detailed guide for deploying ArroseMoi on your Unraid server.
 
 ## Prerequisites
 
-- Unraid 6.12+ (Docker Compose support required)
-- SSH access enabled on Unraid
-- GitHub account with access to your arrosemoi repository
-- Docker images published on GitHub Container Registry (ghcr.io)
+- Unraid 6.12+ with Docker enabled
+- SSH access to Unraid (or use the terminal in Unraid Web UI)
+- Internet access (to pull images from ghcr.io)
 
-## 1. Prepare Your GitHub Repository
+## Docker Image
 
-First, ensure:
-1. Your repository is **public** (required for ghcr.io public access)
-2. Update `docker-compose.yml` to replace `YOUR_GITHUB_USERNAME` with your actual GitHub username
-3. GitHub Actions workflow (`build-ghcr.yml`) is working and pushing images to ghcr.io
-
-Check images are available at:
 ```
-https://ghcr.io/YOUR_USERNAME/arrosemoi/backend:latest
-https://ghcr.io/YOUR_USERNAME/arrosemoi/frontend:latest
+ghcr.io/mistergio5/arrosemoi:latest
 ```
 
-## 2. Setup on Unraid
+Single image containing the React frontend + Node.js backend. No additional containers needed.
 
-### Step 1: SSH into Unraid
+---
+
+## Method 1: Add Container (Unraid UI)
+
+### Step 1 - Open Add Container
+
+Unraid Web UI > **Docker** > **Add Container**
+
+### Step 2 - Basic Settings
+
+| Field | Value |
+|-------|-------|
+| Name | `ArroseMoi` |
+| Repository | `ghcr.io/mistergio5/arrosemoi:latest` |
+| Network Type | `bridge` |
+
+### Step 3 - Icon (optional)
+
+Click **Show more settings...** and set:
+
+| Field | Value |
+|-------|-------|
+| Icon URL | `https://raw.githubusercontent.com/MisterGio5/ArroseMoi/main/unraid/icon.svg` |
+
+### Step 4 - Port Mapping
+
+Click **Add another Path, Port, Variable, Label or Device** :
+
+| Field | Value |
+|-------|-------|
+| Config Type | Port |
+| Name | `Web UI Port` |
+| Container Port | `3001` |
+| Host Port | `3001` *(modifiable, voir note ci-dessous)* |
+| Connection Type | TCP |
+
+> **Changer le port :** Vous pouvez utiliser n'importe quel port host (ex: `8080`). Si vous changez le **Container Port**, vous devez aussi mettre a jour la variable `PORT` a l'etape 5 pour correspondre.
+
+### Step 5 - Environment Variables
+
+Ajoutez chaque variable via **Add another Path, Port, Variable, Label or Device** > Type: **Variable** :
+
+| Name | Key | Value | Notes |
+|------|-----|-------|-------|
+| Port | `PORT` | `3001` | Doit correspondre au Container Port de l'etape 4 |
+| JWT Secret | `JWT_SECRET` | *(votre cle secrete)* | Generez avec `openssl rand -hex 32` |
+| Database Path | `DATABASE_PATH` | `/data/app.sqlite` | Ne pas modifier sauf besoin specifique |
+| Timezone | `TZ` | `Europe/Paris` | Adaptez a votre fuseau horaire |
+
+### Step 6 - Volume Mapping
+
+Click **Add another Path, Port, Variable, Label or Device** :
+
+| Field | Value |
+|-------|-------|
+| Config Type | Path |
+| Name | `App Data` |
+| Container Path | `/data` |
+| Host Path | `/mnt/user/appdata/arrosemoi/data` |
+| Access Mode | Read/Write |
+
+### Step 7 - Apply
+
+1. Click **Apply**
+2. Wait for the image to download and the container to start
+3. Access the app at: `http://YOUR_UNRAID_IP:3001`
+
+---
+
+## Method 2: XML Template
+
+### Installation du template
 
 ```bash
+# SSH to Unraid
 ssh root@YOUR_UNRAID_IP
-# or
-ssh root@YOUR_UNRAID_HOSTNAME
+
+# Download the template
+mkdir -p /boot/config/plugins/dockerMan/templates-user
+wget -O /boot/config/plugins/dockerMan/templates-user/arrosemoi.xml \
+  https://raw.githubusercontent.com/MisterGio5/ArroseMoi/main/unraid/arrosemoi.xml
 ```
 
-### Step 2: Create Application Directory
+### Utilisation
+
+1. Unraid Web UI > **Docker** > **Add Container**
+2. Dans le menu deroulant **Template**, selectionnez **ArroseMoi**
+3. Configurez :
+   - **JWT Secret** : generez une cle secrete
+   - **Port** : modifiez si souhaite (par defaut 3001)
+4. Click **Apply**
+
+---
+
+## Method 3: Docker Compose
+
+### Setup
 
 ```bash
-mkdir -p /mnt/user/appdata/arrosemoi
+# SSH to Unraid
+ssh root@YOUR_UNRAID_IP
+
+# Create directories
+mkdir -p /mnt/user/appdata/arrosemoi/data
 cd /mnt/user/appdata/arrosemoi
-```
 
-### Step 3: Download docker-compose.yml
-
-Option A: Clone the repository
-```bash
-git clone https://github.com/YOUR_USERNAME/arrosemoi.git
-cd arrosemoi
-```
-
-Option B: Download just the docker-compose.yml
-```bash
-wget https://raw.githubusercontent.com/YOUR_USERNAME/arrosemoi/main/docker-compose.yml
-```
-
-### Step 4: Update Configuration
-
-Replace your GitHub username in the file:
-```bash
-sed -i 's/YOUR_GITHUB_USERNAME/your-actual-username/g' docker-compose.yml
-```
-
-### Step 5: Create .env File
-
-```bash
-cat > .env << 'EOF'
-# JWT Secret - Generate a strong random key
-JWT_SECRET=your-super-secret-key-change-this-in-production-at-least-32-chars
-
-# Your Unraid IP or domain
-CORS_ORIGIN=http://192.168.1.100
-VITE_API_URL=http://192.168.1.100:3001/api
-
-# Data path on Unraid
-DATA_PATH=/mnt/user/appdata/arrosemoi/data
-
-# Your logo URL (optional)
-ICON_URL=https://raw.githubusercontent.com/YOUR_USERNAME/arrosemoi/main/public/logo.png
+# Create docker-compose.yml
+cat > docker-compose.yml << 'EOF'
+version: '3.8'
+services:
+  arrosemoi:
+    image: ghcr.io/mistergio5/arrosemoi:latest
+    container_name: arrosemoi
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=CHANGE_ME_GENERATE_WITH_openssl_rand_hex_32
+      - DATABASE_PATH=/data/app.sqlite
+      - TZ=Europe/Paris
+    volumes:
+      - /mnt/user/appdata/arrosemoi/data:/data
 EOF
-```
 
-### Step 6: Create Data Directory
+# Generate a real JWT secret and update
+JWT=$(openssl rand -hex 32)
+sed -i "s/CHANGE_ME_GENERATE_WITH_openssl_rand_hex_32/$JWT/" docker-compose.yml
 
-```bash
-mkdir -p data
-chmod 755 data
-```
+# Start
+docker compose pull
+docker compose up -d
 
-### Step 7: Start the Stack
-
-```bash
-docker compose pull      # Download latest images
-docker compose up -d     # Start in background
-
-# Verify everything is running
+# Verify
 docker compose ps
+docker logs arrosemoi
 ```
 
-You should see:
-- `arrosemoi-backend` ✅ running on port 3001
-- `arrosemoi-frontend` ✅ running on port 80
+### Changer le port (Docker Compose)
 
-### Step 8: Access Your App
+Pour utiliser le port `8080` au lieu de `3001` :
 
-Open in your browser:
+```yaml
+ports:
+  - "8080:8080"        # Les deux doivent correspondre
+environment:
+  - PORT=8080           # Le serveur ecoute sur ce port
 ```
-http://YOUR_UNRAID_IP
-```
 
-## 3. Unraid Web UI Integration
+---
 
-### View Containers
+## Configuration Reference
 
-In Unraid Web UI:
-1. Navigate to **Docker** tab
-2. You should see both containers listed:
-   - `arrosemoi-backend`
-   - `arrosemoi-frontend`
+### Environment Variables
 
-Each has its own management interface (logs, stats, restart, stop).
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `PORT` | `3001` | Non | Port d'ecoute du serveur |
+| `JWT_SECRET` | - | **Oui** | Cle secrete JWT (32+ caracteres) |
+| `JWT_EXPIRES_IN` | `7d` | Non | Duree de validite des tokens |
+| `DATABASE_PATH` | `/data/app.sqlite` | Non | Chemin de la BDD SQLite |
+| `CORS_ORIGIN` | `http://localhost:3001` | Non | Origine CORS autorisee |
+| `TZ` | `Europe/Paris` | Non | Fuseau horaire |
+| `NODE_ENV` | `production` | Non | Environnement Node.js |
 
-## 4. Updating Your Application
+### Volumes
 
-### When You Push Updates to GitHub
+| Container Path | Host Path (Unraid) | Description |
+|---|---|---|
+| `/data` | `/mnt/user/appdata/arrosemoi/data` | BDD SQLite + fichiers persistants |
 
-1. GitHub Actions automatically builds new images
-2. New images are pushed to `ghcr.io/YOUR_USERNAME/arrosemoi/backend:latest`
-3. On Unraid, simply run:
+### Port
+
+| Default | Configurable | Protocol |
+|---|---|---|
+| `3001` | Oui, via variable `PORT` | TCP |
+
+---
+
+## Mise a jour
+
+### Via Unraid UI
+
+1. **Docker** tab > click sur l'icone ArroseMoi > **Force Update**
+2. Unraid telecharge la derniere image et redemarre le conteneur
+3. Vos donnees sont preservees (volume `/data`)
+
+### Via Docker Compose
 
 ```bash
 cd /mnt/user/appdata/arrosemoi
-
-docker compose pull          # Get latest images
-docker compose up -d         # Restart with new versions
-docker compose logs -f       # Watch logs
+docker compose pull
+docker compose up -d
 ```
 
-### Alternative: Automatic Updates with Watchtower
-
-To automatically update containers when new images are pushed:
+### Mise a jour automatique (Watchtower)
 
 ```bash
-# SSH to Unraid and add Watchtower via Docker
 docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
   containrrr/watchtower \
-  arrosemoi-backend arrosemoi-frontend \
-  --interval 300  # Check every 5 minutes
+  arrosemoi \
+  --interval 300
 ```
-
-## 5. Persistent Data
-
-### Database Location
-
-SQLite database is stored at:
-```
-/mnt/user/appdata/arrosemoi/data/app.sqlite
-```
-
-This path persists across container restarts and updates.
-
-### Backup
-
-Backup your database:
-```bash
-cp /mnt/user/appdata/arrosemoi/data/app.sqlite \
-   /mnt/user/appdata/arrosemoi/data/app.sqlite.backup
-```
-
-## 6. Custom Icon in Unraid UI
-
-To show a custom icon in Unraid:
-
-1. Options A: Existing PNG URL (current setup)
-   - Already configured in `docker-compose.yml`
-   - Points to GitHub repository
-
-2. Options B: Local icon file
-   ```bash
-   # Create icons directory
-   mkdir -p /mnt/user/appdata/docker-icons
-   
-   # Place your PNG there (512x512 recommended)
-   cp my-icon.png /mnt/user/appdata/docker-icons/arrosemoi.png
-   
-   # Update docker-compose.yml labels
-   labels:
-     net.unraid.docker.icon: "/mnt/user/appdata/docker-icons/arrosemoi.png"
-   ```
-
-## 7. Reverse Proxy with HTTPS
-
-To add HTTPS and custom domain, use **Nginx Proxy Manager**:
-
-### Install Nginx Proxy Manager
-
-1. Unraid Web UI > **Apps** > **Community Applications**
-2. Search for **"Nginx Proxy Manager"**
-3. Install the jc21 version
-4. Access at `http://YOUR_UNRAID_IP:81`
-   - Default: admin@example.com / changeme
-
-### Create Proxy Host
-
-1. Click **Proxy Hosts** > **Add Proxy Host**
-2. Configure:
-   - **Domain Names:** `arrosemoi.yourdomain.com`
-   - **Scheme:** `http`
-   - **Forward Hostname/IP:** `arrosemoi-frontend` or `192.168.1.100`
-   - **Forward Port:** `80`
-3. Go to **SSL** tab
-4. Click **Request a new SSL Certificate**
-   - Check "Use Let's Encrypt free certificate"
-   - Check "I Agree to the Let's Encrypt Terms"
-   - Check "Force SSL"
-5. Save
-
-### Update CORS Configuration
-
-1. SSH to Unraid
-2. Update .env:
-   ```bash
-   cd /mnt/user/appdata/arrosemoi
-   nano .env
-   
-   # Change to:
-   CORS_ORIGIN=https://arrosemoi.yourdomain.com
-   ```
-
-3. Restart backend:
-   ```bash
-   docker compose restart backend
-   ```
-
-## 8. Useful Commands
-
-```bash
-# View logs
-docker compose logs -f
-docker compose logs -f backend
-docker compose logs -f frontend
-
-# Stop and remove (keeps data)
-docker compose down
-
-# Stop, remove, and clean volumes (CAREFUL!)
-docker compose down -v
-
-# Restart services
-docker compose restart
-docker compose restart backend
-
-# Check status
-docker compose ps
-docker compose stats
-
-# Execute commands in running container
-docker compose exec backend npm list
-
-# Remove old images
-docker image prune -a
-```
-
-## 9. Troubleshooting
-
-### Images won't pull
-```bash
-# Force re-login to ghcr.io
-docker logout ghcr.io
-docker login ghcr.io
-# Enter your GitHub username and Personal Access Token
-
-# Try again
-docker compose pull --no-parallel
-```
-
-### Container won't start
-```bash
-# Check logs
-docker compose logs -f
-
-# Verify port isn't in use
-netstat -an | grep 3001
-netstat -an | grep ":80"
-
-# Check disk space
-df -h /mnt/user/
-```
-
-###  Frontend can't connect to backend
-```bash
-# Verify containers are on same network
-docker network ls
-docker inspect arrosemoi_arrosemoi
-
-# Test connectivity
-docker compose exec frontend curl http://backend:3001/health
-```
-
-### Database errors
-```bash
-# Check database file permissions
-ls -la /mnt/user/appdata/arrosemoi/data/
-
-# Ensure directory is writable
-chmod 755 /mnt/user/appdata/arrosemoi/data/
-```
-
-## 10. Security Considerations
-
-✅ **DO:**
-- Use strong, unique `JWT_SECRET`
-- Keep Docker and images updated
-- Use HTTPS via reverse proxy
-- Regularly backup database
-- Limit exposed ports (only HTTP/HTTPS)
-
-❌ **DON'T:**
-- Commit `.env` file to Git
-- Use default or weak passwords
-- Expose API directly to internet without HTTPS
-- Run containers with `--privileged` flag
-
-## 11. Monitoring
-
-### Using Portainer (Optional)
-
-Install Portainer for visual container management:
-
-```bash
-# SSH to Unraid
-docker volume create portainer_data
-
-docker run -d \
-  -p 8000:8000 \
-  -p 9000:9000 \
-  --name=portainer \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v portainer_data:/data \
-  portainer/portainer-ce
-```
-
-Access at `http://YOUR_UNRAID_IP:9000`
-
-## 12. Performance Optimization
-
-Monitor resource usage:
-```bash
-# Real-time stats
-docker stats
-
-# Specific container
-docker stats arrosemoi-backend
-```
-
-Adjust in `/mnt/user/appdata/arrosemoi/docker-compose.yml` if needed:
-```yaml
-services:
-  backend:
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-```
-
-## Support
-
-For issues:
-1. Check logs: `docker compose logs -f`
-2. Verify configuration: `cat .env`
-3. Test connectivity: `curl http://localhost:3001/health`
-4. Check GitHub Issues: github.com/YOUR_USERNAME/arrosemoi/issues
 
 ---
 
-**Happy hosting! 🌱**
+## Sauvegarde
+
+### Base de donnees
+
+```bash
+# Backup
+cp /mnt/user/appdata/arrosemoi/data/app.sqlite \
+   /mnt/user/appdata/arrosemoi/data/app.sqlite.backup.$(date +%Y%m%d)
+
+# Restore
+docker stop arrosemoi
+cp /mnt/user/appdata/arrosemoi/data/app.sqlite.backup \
+   /mnt/user/appdata/arrosemoi/data/app.sqlite
+docker start arrosemoi
+```
+
+### Backup automatique (cron)
+
+Ajoutez dans Unraid > Settings > User Scripts :
+
+```bash
+#!/bin/bash
+cp /mnt/user/appdata/arrosemoi/data/app.sqlite \
+   /mnt/user/appdata/arrosemoi/backups/app.sqlite.$(date +%Y%m%d_%H%M)
+
+# Keep only last 7 backups
+ls -t /mnt/user/appdata/arrosemoi/backups/app.sqlite.* | tail -n +8 | xargs rm -f
+```
+
+---
+
+## HTTPS avec Reverse Proxy
+
+### Nginx Proxy Manager (recommande)
+
+1. Installez **Nginx Proxy Manager** depuis Community Applications
+2. Accedez a `http://YOUR_UNRAID_IP:81`
+3. **Proxy Hosts** > **Add Proxy Host** :
+   - Domain: `arrosemoi.votre-domaine.com`
+   - Scheme: `http`
+   - Forward Hostname: `YOUR_UNRAID_IP`
+   - Forward Port: `3001` (ou votre port personnalise)
+4. Onglet **SSL** > Request a new SSL certificate (Let's Encrypt)
+
+---
+
+## Troubleshooting
+
+### L'image ne se telecharge pas
+
+```bash
+# Test manual pull
+docker pull ghcr.io/mistergio5/arrosemoi:latest
+
+# Si repo prive, authentifiez-vous:
+docker login ghcr.io -u MisterGio5
+# Entrez un Personal Access Token avec scope read:packages
+```
+
+### Le conteneur ne demarre pas
+
+```bash
+# Voir les logs
+docker logs arrosemoi
+
+# Verifier que le port n'est pas utilise
+netstat -an | grep 3001
+
+# Verifier les permissions du dossier data
+ls -la /mnt/user/appdata/arrosemoi/data/
+chmod 755 /mnt/user/appdata/arrosemoi/data/
+```
+
+### Problemes de base de donnees
+
+```bash
+# Verifier que le volume est monte
+docker inspect arrosemoi | grep -A5 Mounts
+
+# Verifier le fichier SQLite
+ls -la /mnt/user/appdata/arrosemoi/data/app.sqlite
+# Les fichiers .sqlite-shm et .sqlite-wal sont normaux (WAL mode)
+```
+
+### Le port ne fonctionne pas
+
+- Verifiez que la variable `PORT` correspond au Container Port
+- Verifiez qu'aucun autre conteneur n'utilise ce port
+- Redemarrez le conteneur apres modification du port
+
+---
+
+## Security
+
+- Utilisez un `JWT_SECRET` fort et unique (generez avec `openssl rand -hex 32`)
+- Activez HTTPS via un reverse proxy
+- Gardez l'image Docker a jour
+- Ne commitez jamais les fichiers `.env` dans Git
+- Limitez l'acces reseau au serveur Unraid

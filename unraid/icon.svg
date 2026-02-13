@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="potGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#92400E"/>
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Pot -->
+  <path d="M80 170 L90 220 L166 220 L176 170 Z" fill="url(#potGrad)" rx="4"/>
+  <rect x="72" y="162" width="112" height="16" rx="4" fill="#B45309"/>
+
+  <!-- Soil -->
+  <ellipse cx="128" cy="170" rx="48" ry="8" fill="#78350F"/>
+
+  <!-- Stem -->
+  <path d="M128 170 Q128 120 128 90" stroke="#059669" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+  <!-- Left leaf -->
+  <path d="M128 130 Q100 110 85 80 Q110 85 128 110 Z" fill="url(#leafGrad)"/>
+  <path d="M128 130 Q106 105 90 85" stroke="#047857" stroke-width="1.5" fill="none"/>
+
+  <!-- Right leaf -->
+  <path d="M128 110 Q156 90 171 60 Q146 65 128 90 Z" fill="url(#leafGrad)"/>
+  <path d="M128 110 Q150 85 166 65" stroke="#047857" stroke-width="1.5" fill="none"/>
+
+  <!-- Top leaf -->
+  <path d="M128 90 Q110 55 100 30 Q128 50 135 75 Z" fill="url(#leafGrad)"/>
+  <path d="M128 90 Q115 60 105 38" stroke="#047857" stroke-width="1.5" fill="none"/>
+
+  <!-- Water drops -->
+  <path d="M55 95 Q58 85 61 95 Q58 102 55 95 Z" fill="url(#waterGrad)"/>
+  <path d="M42 120 Q45 110 48 120 Q45 127 42 120 Z" fill="url(#waterGrad)"/>
+  <path d="M62 130 Q65 120 68 130 Q65 137 62 130 Z" fill="url(#waterGrad)"/>
+</svg>

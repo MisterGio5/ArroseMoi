@@ -1,64 +1,27 @@
 version: '3.8'
 
 services:
-  # Backend API
-  backend:
-    image: ghcr.io/YOUR_GITHUB_USERNAME/arrosemoi/backend:latest
-    container_name: arrosemoi-backend
+  arrosemoi:
+    image: ghcr.io/mistergio5/arrosemoi:latest
+    container_name: arrosemoi
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "${APP_PORT:-3001}:${APP_PORT:-3001}"
     environment:
       - NODE_ENV=production
-      - PORT=3001
+      - PORT=${APP_PORT:-3001}
       - JWT_SECRET=${JWT_SECRET:-change_this_very_long_secret_key_in_production}
       - JWT_EXPIRES_IN=7d
-      - DATABASE_PATH=/app/data/app.sqlite
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost}
+      - DATABASE_PATH=/data/app.sqlite
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3001}
+      - TZ=${TZ:-Europe/Paris}
     volumes:
-      - backend-data:/app/data
-    networks:
-      - arrosemoi
+      - ${DATA_PATH:-./data}:/data
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:' + (process.env.PORT || 3001) + '/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     labels:
-      net.unraid.docker.icon: "${ICON_URL:-https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/arrosemoi/main/public/logo.png}"
-
-  # Frontend Web UI
-  frontend:
-    image: ghcr.io/YOUR_GITHUB_USERNAME/arrosemoi/frontend:latest
-    container_name: arrosemoi-frontend
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    depends_on:
-      backend:
-        condition: service_healthy
-    environment:
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:3001/api}
-    networks:
-      - arrosemoi
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    labels:
-      net.unraid.docker.icon: "${ICON_URL:-https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/arrosemoi/main/public/logo.png}"
-
-volumes:
-  backend-data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${DATA_PATH:-/mnt/user/appdata/arrosemoi/data}
-
-networks:
-  arrosemoi:
-    driver: bridge
+      net.unraid.docker.icon: "https://raw.githubusercontent.com/MisterGio5/ArroseMoi/main/unraid/icon.svg"
