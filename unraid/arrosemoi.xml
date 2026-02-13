@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Container version="2">
+  <Name>ArroseMoi</Name>
+  <Repository>ghcr.io/YOUR_GITHUB_USERNAME/arrosemoi/frontend</Repository>
+  <Registry>https://ghcr.io</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/YOUR_GITHUB_USERNAME/arrosemoi</Support>
+  <Project>https://github.com/YOUR_GITHUB_USERNAME/arrosemoi</Project>
+  <Overview>
+    🌱 ArroseMoi - Plant watering management application
+    
+    Full-featured web app for managing your plants and watering schedules.
+    
+    Features:
+    ✅ Plant catalog with search
+    ✅ Smart watering reminders
+    ✅ User authentication
+    ✅ Real-time statistics
+    ✅ Responsive design
+  </Overview>
+  <Category>Tools</Category>
+  <WebUI>http://[IP]:[PORT:80]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/arrosemoi/main/unraid/arrosemoi.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/arrosemoi/main/public/logo.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled>1970-01-01T00:00:00Z</DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Description>
+    🌱 ArroseMoi - Plant Management and Watering Application
+    
+    A complete web application for managing your plant collection and automated watering reminders.
+    
+    Features:
+    • Complete plant catalog with search and filters
+    • Smart watering reminders based on plant needs
+    • User authentication and profiles
+    • Real-time statistics and insights
+    • Responsive design (works on all devices)
+    • SQLite database persistence
+    • Docker-based deployment
+    
+    Technology Stack:
+    • Frontend: React 18 + Vite + Tailwind CSS
+    • Backend: Node.js 20 + Express
+    • Database: SQLite
+    • Deployment: Docker + Unraid
+    
+    Installation:
+    1. Fill in your GitHub username in configuration
+    2. Fill in your JWT secret (generate a random string)
+    3. Apply and wait for containers to start
+    4. Access at http://YOUR_UNRAID_IP
+    
+    Note: This template uses Docker Compose to manage both frontend and backend services.
+    For detailed setup instructions, see: https://github.com/YOUR_GITHUB_USERNAME/arrosemoi
+  </Description>
+  <Networking>
+    <Mode>bridge</Mode>
+    <Publish>
+      <Port>
+        <HostPort>80</HostPort>
+        <ContainerPort>80</ContainerPort>
+        <Protocol>tcp</Protocol>
+      </Port>
+    </Publish>
+  </Networking>
+  <Data>
+    <Volume>
+      <HostDir>/mnt/user/appdata/arrosemoi/data</HostDir>
+      <ContainerDir>/app/data</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+  </Data>
+  <Environment>
+    <Variable>
+      <Name>TZ</Name>
+      <Value>Europe/Paris</Value>
+      <Mode/>
+    </Variable>
+  </Environment>
+  <Labels/>
+  <Config 
+    Name="WebUI Port" 
+    Target="HostPort" 
+    Default="80" 
+    Mode="bridge" 
+    Description="Port for accessing the web interface" 
+    Type="Port" 
+    Display="always" 
+    Required="true" 
+    Mask="false"/>
+  <Config 
+    Name="API Port" 
+    Target="8080" 
+    Default="3001" 
+    Mode="" 
+    Description="Backend API port (usually not exposed)" 
+    Type="Port" 
+    Display="advanced" 
+    Required="false" 
+    Mask="false"/>
+  <Config 
+    Name="App Data" 
+    Target="HostDir" 
+    Default="/mnt/user/appdata/arrosemoi" 
+    Mode="rw" 
+    Description="Directory for persistent data (database)" 
+    Type="Path" 
+    Display="always" 
+    Required="true" 
+    Mask="false"/>
+  <Config 
+    Name="Timezone" 
+    Target="TZ" 
+    Default="Europe/Paris" 
+    Mode="" 
+    Description="Container timezone" 
+    Type="Variable" 
+    Display="advanced" 
+    Required="false" 
+    Mask="false"/>
+</Container>
