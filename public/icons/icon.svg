@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#2d5016"/>
+  <g transform="translate(256,280)">
+    <!-- Water drop -->
+    <path d="M0-120 C-10-80 -50-20 -50 30 C-50 70 -28 100 0 100 C28 100 50 70 50 30 C50-20 10-80 0-120Z" fill="#7dd3fc" opacity="0.9"/>
+    <!-- Leaf left -->
+    <path d="M-20 40 C-80-10 -100-80 -60-120 C-40-100 0-60 -20 40Z" fill="#86efac" opacity="0.85"/>
+    <!-- Leaf right -->
+    <path d="M20 40 C80-10 100-80 60-120 C40-100 0-60 20 40Z" fill="#4ade80" opacity="0.85"/>
+  </g>
+</svg>

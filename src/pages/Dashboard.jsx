@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { usePlants } from '../contexts/PlantContext';
 import { Header } from '../components/layout/Header';
 import { Panel, PanelHeader } from '../components/layout/Panel';
@@ -9,6 +9,7 @@ import { DuePlants } from '../components/plants/DuePlants';
 import { PlantFilters } from '../components/plants/PlantFilters';
 import { Button } from '../components/common/Button';
 import { isDue, nextWateringDate } from '../utils/dateUtils';
+import { subscribeToPush, unsubscribeFromPush, isPushSubscribed, sendTestNotification } from '../services/notifications';
 
 export const Dashboard = () => {
   const { plants } = usePlants();
@@ -75,21 +76,36 @@ export const Dashboard = () => {
     setEditingPlant(null);
   };
 
-  const requestNotificationPermission = () => {
-    if (!('Notification' in window)) {
-      alert('Les notifications ne sont pas supportées par ce navigateur.');
-      return;
-    }
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
-    Notification.requestPermission().then((permission) => {
-      if (permission === 'granted') {
-        new Notification('ArroseMoi', {
-          body: 'Notifications activées pour vos rappels d\'arrosage.',
-        });
+  useEffect(() => {
+    isPushSubscribed().then(setPushEnabled);
+  }, []);
+
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush();
+        setPushEnabled(false);
       } else {
-        alert('Notifications bloquées. Autorisez-les dans les réglages du navigateur.');
+        await subscribeToPush();
+        setPushEnabled(true);
       }
-    });
+    } catch (err) {
+      alert(err.message || 'Erreur lors de la configuration des notifications');
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      await sendTestNotification();
+    } catch {
+      alert('Erreur : activez d\'abord les notifications');
+    }
   };
 
   return (
@@ -113,10 +129,14 @@ export const Dashboard = () => {
               Catalogue de plantes, fiches détaillées et rappels d'arrosage intelligents.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button onClick={requestNotificationPermission}>
-                Activer les notifications
+              <Button onClick={handleTogglePush} disabled={pushLoading}>
+                {pushLoading ? 'Chargement...' : pushEnabled ? 'Desactiver les notifications' : 'Activer les notifications'}
               </Button>
-              <Button variant="ghost">Tester</Button>
+              {pushEnabled && (
+                <Button variant="ghost" onClick={handleTestNotification}>
+                  Tester
+                </Button>
+              )}
             </div>
           </div>
 

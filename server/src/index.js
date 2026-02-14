@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const plantRoutes = require('./routes/plants');
 const profileRoutes = require('./routes/profile');
 const houseRoutes = require('./routes/houses');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,6 +31,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/plants', plantRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/houses', houseRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Serve React static files (built frontend copied to ./public by Dockerfile)
 const publicPath = path.join(__dirname, '..', 'public');
@@ -42,4 +44,8 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`ArroseMoi server running on port ${PORT}`);
+
+  // Start notification scheduler
+  const { startScheduler } = require('./services/notificationScheduler');
+  startScheduler();
 });
