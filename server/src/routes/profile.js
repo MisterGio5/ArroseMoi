@@ -1,13 +1,15 @@
 const express = require('express');
 const db = require('../db/database');
 const { authenticate } = require('../middleware/auth');
+const { encrypt, decrypt } = require('../utils/crypto');
 
 const router = express.Router();
 
 router.use(authenticate);
 
 // Mask API key for display (show first 4 and last 4 chars)
-function maskKey(key) {
+function maskKey(encryptedKey) {
+  const key = decrypt(encryptedKey);
   if (!key) return null;
   if (key.length <= 8) return '****';
   return key.slice(0, 4) + '****' + key.slice(-4);
@@ -29,10 +31,10 @@ router.put('/api-keys', (req, res) => {
   const { openaiApiKey, plantnetApiKey } = req.body;
 
   if (openaiApiKey !== null && openaiApiKey !== undefined) {
-    db.prepare('UPDATE users SET openai_api_key = ? WHERE id = ?').run(openaiApiKey, req.user.id);
+    db.prepare('UPDATE users SET openai_api_key = ? WHERE id = ?').run(encrypt(openaiApiKey), req.user.id);
   }
   if (plantnetApiKey !== null && plantnetApiKey !== undefined) {
-    db.prepare('UPDATE users SET plantnet_api_key = ? WHERE id = ?').run(plantnetApiKey, req.user.id);
+    db.prepare('UPDATE users SET plantnet_api_key = ? WHERE id = ?').run(encrypt(plantnetApiKey), req.user.id);
   }
 
   res.json({ message: 'Clés API mises à jour' });

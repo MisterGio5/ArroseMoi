@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const db = require('../db/database');
 const { generateToken } = require('../middleware/auth');
 
@@ -28,6 +29,15 @@ router.post('/register', async (req, res) => {
 
     const user = { id: result.lastInsertRowid, email, created_at: new Date().toISOString() };
     const token = generateToken(user);
+
+    // Create default house for new user
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const houseResult = db.prepare(
+      'INSERT INTO houses (name, invite_code, created_by) VALUES (?, ?, ?)'
+    ).run('Ma Maison', code, user.id);
+    db.prepare(
+      'INSERT INTO house_members (house_id, user_id, role) VALUES (?, ?, ?)'
+    ).run(houseResult.lastInsertRowid, user.id, 'owner');
 
     res.status(201).json({ token, user });
   } catch (err) {

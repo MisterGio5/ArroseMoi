@@ -1,8 +1,9 @@
 import api from './api';
 
 export const plantService = {
-  getAllPlants: async () => {
-    const response = await api.get('/plants');
+  getAllPlants: async (houseId) => {
+    const params = houseId ? `?houseId=${houseId}` : '';
+    const response = await api.get(`/plants${params}`);
     return response.data.plants;
   },
 
@@ -32,6 +33,11 @@ export const plantService = {
 
   toggleFavorite: async (id) => {
     const response = await api.patch(`/plants/${id}/favorite`);
+    return response.data.plant;
+  },
+
+  getAiCare: async (id) => {
+    const response = await api.post(`/plants/${id}/ai-care`);
     return response.data.plant;
   },
 

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { usePlants } from '../../contexts/PlantContext';
+import { useHouses } from '../../contexts/HouseContext';
 import { Button } from '../common/Button';
 import { Input, Select, Textarea } from '../common/Input';
 import { PLANT_TYPES, SUN_EXPOSURE, ROOM_LABELS } from '../../utils/constants';
 
 export const PlantForm = ({ plant, onCancel }) => {
   const { addPlant, updatePlant, identifyPlant } = usePlants();
+  const { houses, currentHouseId } = useHouses();
   const [loading, setLoading] = useState(false);
   const [identifyStatus, setIdentifyStatus] = useState('');
   const [aiTips, setAiTips] = useState(null);
@@ -19,6 +21,7 @@ export const PlantForm = ({ plant, onCancel }) => {
     lastWatered: new Date().toISOString().split('T')[0],
     notes: '',
     photo: null,
+    houseId: currentHouseId || (houses[0]?.id ?? ''),
   });
 
   const [photoFile, setPhotoFile] = useState(null);
@@ -36,6 +39,7 @@ export const PlantForm = ({ plant, onCancel }) => {
           : new Date().toISOString().split('T')[0],
         notes: plant.notes || '',
         photo: plant.photo || null,
+        houseId: plant.houseId || currentHouseId || (houses[0]?.id ?? ''),
       });
     }
   }, [plant]);
@@ -117,6 +121,7 @@ export const PlantForm = ({ plant, onCancel }) => {
         ...formData,
         photo: photoData,
         indoor: formData.type === 'interieur',
+        houseId: formData.houseId || currentHouseId || (houses[0]?.id ?? null),
       };
 
       if (plant) {
@@ -135,6 +140,7 @@ export const PlantForm = ({ plant, onCancel }) => {
         lastWatered: new Date().toISOString().split('T')[0],
         notes: '',
         photo: null,
+        houseId: currentHouseId || (houses[0]?.id ?? ''),
       });
       setPhotoFile(null);
       setIdentifyStatus('');
@@ -194,6 +200,17 @@ export const PlantForm = ({ plant, onCancel }) => {
         ]}
         required
       />
+
+      {houses.length > 1 && (
+        <Select
+          label="Maison"
+          name="houseId"
+          value={formData.houseId}
+          onChange={handleChange}
+          options={houses.map((h) => ({ value: h.id, label: h.name }))}
+          required
+        />
+      )}
 
       <Input
         label="Fréquence d'arrosage (jours)"

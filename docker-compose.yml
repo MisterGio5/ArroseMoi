@@ -1,7 +1,6 @@
-version: '3.8'
-
 services:
   arrosemoi:
+    build: .
     image: ghcr.io/mistergio5/arrosemoi:latest
     container_name: arrosemoi
     restart: unless-stopped
@@ -13,6 +12,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-change_this_very_long_secret_key_in_production}
       - JWT_EXPIRES_IN=7d
       - DATABASE_PATH=/data/app.sqlite
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-change_this_encryption_key_in_production}
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3001}
       - TZ=${TZ:-Europe/Paris}
     volumes:

@@ -251,11 +251,6 @@ export const Profile = () => {
           </div>
         </Panel>
 
-        <div className="mt-6 text-center">
-          <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-            ← Retour au tableau de bord
-          </Button>
-        </div>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { plantService } from '../services/plantService';
 import { useAuth } from './AuthContext';
+import { useHouses } from './HouseContext';
 
 const PlantContext = createContext(null);
 
@@ -17,6 +18,7 @@ export const PlantProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { isAuthenticated } = useAuth();
+  const { currentHouseId } = useHouses();
 
   const loadPlants = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -24,7 +26,7 @@ export const PlantProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await plantService.getAllPlants();
+      const data = await plantService.getAllPlants(currentHouseId);
       setPlants(data);
     } catch (err) {
       setError(err.message);
@@ -32,7 +34,7 @@ export const PlantProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, currentHouseId]);
 
   useEffect(() => {
     loadPlants();
@@ -107,6 +109,19 @@ export const PlantProvider = ({ children }) => {
     return addPlant(clonedPlant);
   };
 
+  const getAiCare = async (id) => {
+    try {
+      const updatedPlant = await plantService.getAiCare(id);
+      setPlants((prev) =>
+        prev.map((plant) => (plant.id === id ? updatedPlant : plant))
+      );
+      return updatedPlant;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
   const identifyPlant = async (formData) => {
     try {
       const result = await plantService.identifyPlant(formData);
@@ -129,6 +144,7 @@ export const PlantProvider = ({ children }) => {
     toggleFavorite,
     duplicatePlant,
     identifyPlant,
+    getAiCare,
   };
 
   return <PlantContext.Provider value={value}>{children}</PlantContext.Provider>;

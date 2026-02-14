@@ -8,6 +8,7 @@ require('./db/database');
 const authRoutes = require('./routes/auth');
 const plantRoutes = require('./routes/plants');
 const profileRoutes = require('./routes/profile');
+const houseRoutes = require('./routes/houses');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -28,6 +29,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/plants', plantRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/houses', houseRoutes);
 
 // Serve React static files (built frontend copied to ./public by Dockerfile)
 const publicPath = path.join(__dirname, '..', 'public');
