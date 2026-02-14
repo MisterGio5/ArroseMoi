@@ -37,6 +37,7 @@ docker run -d \
   -p 3001:3001 \
   -v /path/to/data:/data \
   -e JWT_SECRET=your-secret-key-here \
+  -e ENCRYPTION_KEY=your-encryption-key-here \
   ghcr.io/mistergio5/arrosemoi:latest
 ```
 
@@ -152,8 +153,17 @@ ghcr.io/mistergio5/arrosemoi:latest
    |------|------|-----|-------|
    | Variable | Port | `PORT` | `3001` *(doit correspondre au Container Port)* |
    | Variable | JWT Secret | `JWT_SECRET` | *(generez une chaine aleatoire de 32+ caracteres)* |
+   | Variable | Encryption Key | `ENCRYPTION_KEY` | *(generez une chaine aleatoire de 32+ caracteres)* |
    | Variable | Database Path | `DATABASE_PATH` | `/data/app.sqlite` |
    | Variable | Timezone | `TZ` | `Europe/Paris` |
+
+   > **Pour generer les cles secretes**, connectez-vous en SSH a Unraid et executez :
+   > ```bash
+   > openssl rand -hex 32
+   > ```
+   > Utilisez un resultat different pour `JWT_SECRET` et `ENCRYPTION_KEY`.
+   >
+   > **Important :** ne changez jamais `ENCRYPTION_KEY` apres le premier demarrage, sinon les cles API deja enregistrees ne pourront plus etre dechiffrees.
 
 7. **Volume Mapping** *(Add another Path, Port, Variable)* :
    - Type: **Path**
@@ -197,6 +207,7 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - JWT_SECRET=CHANGE_ME_TO_A_RANDOM_STRING
+      - ENCRYPTION_KEY=CHANGE_ME_TO_ANOTHER_RANDOM_STRING
       - DATABASE_PATH=/data/app.sqlite
       - TZ=Europe/Paris
     volumes:
@@ -226,6 +237,7 @@ docker compose up -d
 |---|---|---|---|
 | `PORT` | `3001` | Non | Port d'ecoute du serveur (doit correspondre au port mapping Docker) |
 | `JWT_SECRET` | - | **Oui** | Cle secrete pour les tokens JWT (32+ caracteres) |
+| `ENCRYPTION_KEY` | - | **Oui** | Cle de chiffrement des cles API utilisateurs (32+ caracteres). **Ne jamais changer apres le premier demarrage.** |
 | `JWT_EXPIRES_IN` | `7d` | Non | Duree de validite des tokens JWT |
 | `DATABASE_PATH` | `/data/app.sqlite` | Non | Chemin de la base de donnees SQLite |
 | `CORS_ORIGIN` | `http://localhost:3001` | Non | Origine autorisee pour CORS |
@@ -252,6 +264,7 @@ docker run -d \
   -e PORT=8080 \
   -v /mnt/user/appdata/arrosemoi/data:/data \
   -e JWT_SECRET=your-secret-key \
+  -e ENCRYPTION_KEY=your-encryption-key \
   ghcr.io/mistergio5/arrosemoi:latest
 ```
 
@@ -279,7 +292,7 @@ docker compose down      # Stop and remove
 
 ## Security Notes
 
-- Change the `JWT_SECRET` to a strong, random value in production
+- Change `JWT_SECRET` and `ENCRYPTION_KEY` to strong, random values in production
 - Use HTTPS with a reverse proxy (e.g., Nginx Proxy Manager on Unraid)
 - Keep Docker and images updated regularly
 - Never commit `.env` files to Git
