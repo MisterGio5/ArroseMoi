@@ -17,20 +17,7 @@ export const Header = () => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Safely access houses context (may not be available on login/register pages)
-  let houses = [];
-  let currentHouseId = null;
-  let switchHouse = () => {};
-  let pendingInvitations = [];
-  try {
-    const houseCtx = useHouses();
-    houses = houseCtx.houses;
-    currentHouseId = houseCtx.currentHouseId;
-    switchHouse = houseCtx.switchHouse;
-    pendingInvitations = houseCtx.pendingInvitations;
-  } catch {
-    // HouseContext not available (e.g. on login page)
-  }
+  const { houses, currentHouseId, switchHouse, pendingInvitations } = useHouses();
 
   const handleLogout = () => {
     logout();
