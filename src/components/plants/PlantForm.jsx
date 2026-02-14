@@ -201,16 +201,14 @@ export const PlantForm = ({ plant, onCancel }) => {
         required
       />
 
-      {houses.length > 1 && (
-        <Select
-          label="Maison"
-          name="houseId"
-          value={formData.houseId}
-          onChange={handleChange}
-          options={houses.map((h) => ({ value: h.id, label: h.name }))}
-          required
-        />
-      )}
+      <Select
+        label="Maison"
+        name="houseId"
+        value={formData.houseId}
+        onChange={handleChange}
+        options={houses.map((h) => ({ value: h.id, label: h.name }))}
+        required
+      />
 
       <Input
         label="Fréquence d'arrosage (jours)"
@@ -241,6 +239,9 @@ export const PlantForm = ({ plant, onCancel }) => {
           onChange={handleChange}
           className="px-2 py-2 rounded-xl border border-forest/20 bg-white text-sm"
         />
+        <p className="text-xs text-ink/50">
+          Plus vous ajoutez de photos, plus l'IA pourra identifier votre plante avec certitude.
+        </p>
       </div>
 
       <div className="flex items-end gap-2">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePlants } from '../contexts/PlantContext';
+import { useHouses } from '../contexts/HouseContext';
 import { Header } from '../components/layout/Header';
 import { Panel, PanelHeader } from '../components/layout/Panel';
 import { Button } from '../components/common/Button';
@@ -45,12 +46,14 @@ const buildEditData = (plant) => ({
   lastRepotted: plant.lastRepotted || '',
   lastFertilized: plant.lastFertilized || '',
   acquiredDate: plant.acquiredDate || '',
+  houseId: plant.houseId || '',
 });
 
 export const PlantDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { plants, markAsWatered, getAiCare, updatePlant } = usePlants();
+  const { houses } = useHouses();
   const [plant, setPlant] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [waterLoading, setWaterLoading] = useState(false);
@@ -487,6 +490,23 @@ export const PlantDetail = () => {
                 }
               />
               <InfoItem icon="&#128197;" label="Ajoutée le" value={formatDate(plant.created_at)} />
+              <InfoItem
+                icon="&#127968;"
+                label="Maison"
+                value={houses.find((h) => h.id === plant.houseId)?.name || '—'}
+                editing={editing}
+                editNode={
+                  <select
+                    className={selectClass}
+                    value={editData.houseId}
+                    onChange={(e) => handleChange('houseId', Number(e.target.value))}
+                  >
+                    {houses.map((h) => (
+                      <option key={h.id} value={h.id}>{h.name}</option>
+                    ))}
+                  </select>
+                }
+              />
               <InfoItem
                 icon="&#127793;"
                 label="Type"
