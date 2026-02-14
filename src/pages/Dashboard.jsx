@@ -78,13 +78,24 @@ export const Dashboard = () => {
 
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
+  const [pushError, setPushError] = useState(null);
+  const [pushSupported, setPushSupported] = useState(true);
 
   useEffect(() => {
-    isPushSubscribed().then(setPushEnabled);
+    const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && isSecure;
+    setPushSupported(supported);
+
+    if (supported) {
+      isPushSubscribed().then(setPushEnabled);
+    } else if (!isSecure) {
+      setPushError('HTTPS requis pour les notifications');
+    }
   }, []);
 
   const handleTogglePush = async () => {
     setPushLoading(true);
+    setPushError(null);
     try {
       if (pushEnabled) {
         await unsubscribeFromPush();
@@ -94,17 +105,24 @@ export const Dashboard = () => {
         setPushEnabled(true);
       }
     } catch (err) {
-      alert(err.message || 'Erreur lors de la configuration des notifications');
+      console.error('[ArroseMoi] Push error:', err);
+      setPushError(err.message || 'Erreur lors de la configuration des notifications');
     } finally {
       setPushLoading(false);
     }
   };
 
+  const [pushSuccess, setPushSuccess] = useState(null);
+
   const handleTestNotification = async () => {
+    setPushError(null);
+    setPushSuccess(null);
     try {
-      await sendTestNotification();
-    } catch {
-      alert('Erreur : activez d\'abord les notifications');
+      const res = await sendTestNotification();
+      setPushSuccess(res.data?.message || 'Notification envoyée !');
+      setTimeout(() => setPushSuccess(null), 5000);
+    } catch (err) {
+      setPushError(err.response?.data?.error || 'Erreur lors de l\'envoi de la notification test');
     }
   };
 
@@ -128,9 +146,9 @@ export const Dashboard = () => {
             <p className="text-lg text-ink/80 mb-5 max-w-xl">
               Catalogue de plantes, fiches détaillées et rappels d'arrosage intelligents.
             </p>
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={handleTogglePush} disabled={pushLoading}>
-                {pushLoading ? 'Chargement...' : pushEnabled ? 'Desactiver les notifications' : 'Activer les notifications'}
+            <div className="flex flex-wrap gap-3 items-center">
+              <Button onClick={handleTogglePush} disabled={pushLoading || !pushSupported}>
+                {pushLoading ? 'Chargement...' : pushEnabled ? 'Désactiver les notifications' : 'Activer les notifications'}
               </Button>
               {pushEnabled && (
                 <Button variant="ghost" onClick={handleTestNotification}>
@@ -138,6 +156,15 @@ export const Dashboard = () => {
                 </Button>
               )}
             </div>
+            {pushError && (
+              <p className="text-red-500 text-sm mt-2">{pushError}</p>
+            )}
+            {pushSuccess && (
+              <p className="text-green-600 text-sm mt-2">{pushSuccess}</p>
+            )}
+            {!pushSupported && !pushError && (
+              <p className="text-amber-600 text-sm mt-2">Notifications non disponibles (HTTPS requis ou navigateur non compatible)</p>
+            )}
           </div>
 
           <PlantStats />

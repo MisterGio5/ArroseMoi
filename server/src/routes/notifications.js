@@ -24,9 +24,10 @@ router.post('/subscribe', authenticate, (req, res) => {
       'INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)'
     ).run(req.user.id, endpoint, keys.p256dh, keys.auth);
 
+    console.log(`[Push] Subscription saved for user ${req.user.id}, endpoint: ${endpoint.slice(0, 60)}...`);
     res.json({ message: 'Souscription enregistrée' });
   } catch (err) {
-    console.error('Push subscribe error:', err);
+    console.error('[Push] Subscribe error:', err);
     res.status(500).json({ error: 'Erreur lors de l\'enregistrement' });
   }
 });
@@ -44,46 +45,67 @@ router.delete('/subscribe', authenticate, (req, res) => {
       .run(req.user.id, endpoint);
     res.json({ message: 'Souscription supprimée' });
   } catch (err) {
-    console.error('Push unsubscribe error:', err);
+    console.error('[Push] Unsubscribe error:', err);
     res.status(500).json({ error: 'Erreur lors de la suppression' });
   }
 });
 
 // Send a test notification
-router.post('/test', authenticate, (req, res) => {
-  const subscriptions = db.prepare(
-    'SELECT * FROM push_subscriptions WHERE user_id = ?'
-  ).all(req.user.id);
+router.post('/test', authenticate, async (req, res) => {
+  try {
+    const subscriptions = db.prepare(
+      'SELECT * FROM push_subscriptions WHERE user_id = ?'
+    ).all(req.user.id);
 
-  if (subscriptions.length === 0) {
-    return res.status(404).json({ error: 'Aucune souscription trouvée' });
-  }
+    console.log(`[Push] Test requested by user ${req.user.id}, found ${subscriptions.length} subscription(s)`);
 
-  const payload = JSON.stringify({
-    title: 'ArroseMoi',
-    body: 'Les notifications fonctionnent ! Vous recevrez des rappels d\'arrosage.',
-    tag: 'arrosemoi-test',
-    url: '/',
-  });
+    if (subscriptions.length === 0) {
+      return res.status(404).json({ error: 'Aucune souscription trouvée. Réactivez les notifications.' });
+    }
 
-  const results = subscriptions.map((sub) => {
-    const pushSubscription = {
-      endpoint: sub.endpoint,
-      keys: { p256dh: sub.p256dh, auth: sub.auth },
-    };
-
-    return webpush.sendNotification(pushSubscription, payload).catch((err) => {
-      if (err.statusCode === 410 || err.statusCode === 404) {
-        // Subscription expired - clean up
-        db.prepare('DELETE FROM push_subscriptions WHERE id = ?').run(sub.id);
-      }
-      return { error: err.message };
+    const payload = JSON.stringify({
+      title: 'ArroseMoi',
+      body: 'Les notifications fonctionnent ! Vous recevrez des rappels d\'arrosage.',
+      tag: 'arrosemoi-test',
+      url: '/',
     });
-  });
 
-  Promise.all(results)
-    .then(() => res.json({ message: 'Notification test envoyée' }))
-    .catch(() => res.status(500).json({ error: 'Erreur lors de l\'envoi' }));
+    let sent = 0;
+    const errors = [];
+
+    for (const sub of subscriptions) {
+      const pushSubscription = {
+        endpoint: sub.endpoint,
+        keys: { p256dh: sub.p256dh, auth: sub.auth },
+      };
+
+      try {
+        await webpush.sendNotification(pushSubscription, payload);
+        sent++;
+        console.log(`[Push] Notification sent to sub ${sub.id}`);
+      } catch (err) {
+        console.error(`[Push] Failed for sub ${sub.id}:`, err.statusCode, err.body || err.message);
+        errors.push(`Sub ${sub.id}: ${err.statusCode} - ${err.body || err.message}`);
+
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          db.prepare('DELETE FROM push_subscriptions WHERE id = ?').run(sub.id);
+          console.log(`[Push] Removed expired subscription ${sub.id}`);
+        }
+      }
+    }
+
+    if (sent > 0) {
+      res.json({ message: `Notification envoyée (${sent}/${subscriptions.length})` });
+    } else {
+      res.status(500).json({
+        error: 'Échec de l\'envoi. Les souscriptions sont peut-être expirées. Désactivez puis réactivez les notifications.',
+        details: errors,
+      });
+    }
+  } catch (err) {
+    console.error('[Push] Test error:', err);
+    res.status(500).json({ error: 'Erreur serveur: ' + err.message });
+  }
 });
 
 module.exports = router;

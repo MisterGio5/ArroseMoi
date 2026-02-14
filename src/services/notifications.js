@@ -1,7 +1,5 @@
 import api from './api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -13,23 +11,39 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
-export async function getVapidPublicKey() {
-  const res = await fetch(`${API_BASE_URL}/notifications/vapid-public-key`);
-  const data = await res.json();
-  return data.publicKey;
+async function getVapidPublicKey() {
+  const res = await api.get('/notifications/vapid-public-key');
+  return res.data.publicKey;
 }
 
 export async function subscribeToPush() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    throw new Error('Push notifications non supportées par ce navigateur');
+  if (!('serviceWorker' in navigator)) {
+    throw new Error('Service Worker non supporté par ce navigateur');
+  }
+  if (!('PushManager' in window)) {
+    throw new Error('Push API non supportée par ce navigateur');
+  }
+  if (!('Notification' in window)) {
+    throw new Error('Notifications non supportées par ce navigateur');
+  }
+
+  // Check if we're on HTTPS or localhost
+  const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!isSecure) {
+    throw new Error('Les notifications nécessitent HTTPS. Configurez un certificat SSL pour votre serveur.');
   }
 
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
-    throw new Error('Permission de notification refusée');
+    throw new Error('Permission de notification refusée. Autorisez-les dans les réglages du navigateur.');
   }
 
-  const registration = await navigator.serviceWorker.ready;
+  // Wait for SW with a timeout
+  const registration = await getSwRegistration();
+  if (!registration) {
+    throw new Error('Service Worker non enregistré. Rechargez la page et réessayez.');
+  }
+
   const vapidPublicKey = await getVapidPublicKey();
 
   const subscription = await registration.pushManager.subscribe({
@@ -47,17 +61,20 @@ export async function subscribeToPush() {
     },
   });
 
+  console.log('[ArroseMoi] Push subscription active');
   return subscription;
 }
 
 export async function unsubscribeFromPush() {
-  const registration = await navigator.serviceWorker.ready;
-  const subscription = await registration.pushManager.getSubscription();
+  const registration = await getSwRegistration();
+  if (!registration) return;
 
+  const subscription = await registration.pushManager.getSubscription();
   if (subscription) {
     const endpoint = subscription.endpoint;
     await subscription.unsubscribe();
     await api.delete('/notifications/subscribe', { data: { endpoint } });
+    console.log('[ArroseMoi] Push subscription removed');
   }
 }
 
@@ -67,7 +84,8 @@ export async function isPushSubscribed() {
   }
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await getSwRegistration();
+    if (!registration) return false;
     const subscription = await registration.pushManager.getSubscription();
     return !!subscription;
   } catch {
@@ -76,15 +94,58 @@ export async function isPushSubscribed() {
 }
 
 export async function sendTestNotification() {
-  await api.post('/notifications/test');
+  return api.post('/notifications/test');
+}
+
+// Get SW registration with a 3-second timeout (avoids hanging forever)
+function getSwRegistration() {
+  return new Promise((resolve) => {
+    if (!('serviceWorker' in navigator)) {
+      resolve(null);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      console.warn('[ArroseMoi] SW ready timeout');
+      resolve(navigator.serviceWorker.controller ? navigator.serviceWorker.ready : null);
+    }, 3000);
+
+    navigator.serviceWorker.ready.then((reg) => {
+      clearTimeout(timeout);
+      resolve(reg);
+    }).catch(() => {
+      clearTimeout(timeout);
+      resolve(null);
+    });
+  });
 }
 
 export function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then((reg) => console.log('SW registered:', reg.scope))
-        .catch((err) => console.error('SW registration failed:', err));
-    });
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[ArroseMoi] Service Worker non supporté');
+    return;
   }
+
+  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    .then((reg) => {
+      console.log('[ArroseMoi] SW enregistré, scope:', reg.scope);
+
+      // Check for updates
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              console.log('[ArroseMoi] SW mis à jour');
+            }
+          });
+        }
+      });
+    })
+    .catch((err) => {
+      console.error('[ArroseMoi] SW registration échouée:', err.message);
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        console.error('[ArroseMoi] HTTPS requis pour le Service Worker');
+      }
+    });
 }
