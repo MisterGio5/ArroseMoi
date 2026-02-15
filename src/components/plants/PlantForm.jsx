@@ -24,7 +24,7 @@ export const PlantForm = ({ plant, onCancel }) => {
     houseId: currentHouseId || (houses[0]?.id ?? ''),
   });
 
-  const [photoFile, setPhotoFile] = useState(null);
+  const [photoFiles, setPhotoFiles] = useState([]);
 
   useEffect(() => {
     if (plant) {
@@ -46,16 +46,20 @@ export const PlantForm = ({ plant, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
-    if (type === 'file' && files?.[0]) {
-      setPhotoFile(files[0]);
+    if (type === 'file' && files?.length > 0) {
+      setPhotoFiles((prev) => [...prev, ...Array.from(files)].slice(0, 5));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
+  const handleRemovePhoto = (index) => {
+    setPhotoFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleIdentify = async () => {
-    if (!photoFile) {
-      alert('Choisis d\'abord une photo.');
+    if (photoFiles.length === 0) {
+      alert('Choisis d\'abord une ou plusieurs photos.');
       return;
     }
 
@@ -63,7 +67,9 @@ export const PlantForm = ({ plant, onCancel }) => {
     setAiTips(null);
 
     const formDataObj = new FormData();
-    formDataObj.append('images[]', photoFile);
+    for (const file of photoFiles) {
+      formDataObj.append('images[]', file);
+    }
 
     try {
       const result = await identifyPlant(formDataObj);
@@ -108,12 +114,12 @@ export const PlantForm = ({ plant, onCancel }) => {
     try {
       let photoData = formData.photo;
 
-      // Convert photo file to base64 if new file selected
-      if (photoFile) {
+      // Convert first photo file to base64 if new files selected
+      if (photoFiles.length > 0) {
         photoData = await new Promise((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(photoFile);
+          reader.readAsDataURL(photoFiles[0]);
         });
       }
 
@@ -142,7 +148,7 @@ export const PlantForm = ({ plant, onCancel }) => {
         photo: null,
         houseId: currentHouseId || (houses[0]?.id ?? ''),
       });
-      setPhotoFile(null);
+      setPhotoFiles([]);
       setIdentifyStatus('');
       setAiTips(null);
 
@@ -231,17 +237,38 @@ export const PlantForm = ({ plant, onCancel }) => {
       />
 
       <div className="flex flex-col gap-1.5">
-        <label className="font-medium text-ink">Photo</label>
+        <label className="font-medium text-ink">Photos</label>
         <input
           type="file"
           name="photo"
           accept="image/*"
+          multiple
           onChange={handleChange}
           className="px-2 py-2 rounded-xl border border-forest/20 bg-white text-sm"
         />
         <p className="text-xs text-ink/50">
-          Plus vous ajoutez de photos, plus l'IA pourra identifier votre plante avec certitude.
+          Jusqu'a 5 photos pour une meilleure identification par l'IA.
         </p>
+        {photoFiles.length > 0 && (
+          <div className="flex gap-2 flex-wrap mt-1">
+            {photoFiles.map((file, idx) => (
+              <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-forest/20">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={`Photo ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemovePhoto(idx)}
+                  className="absolute top-0 right-0 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center leading-none"
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-end gap-2">

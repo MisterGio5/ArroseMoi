@@ -52,7 +52,7 @@ const buildEditData = (plant) => ({
 export const PlantDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { plants, markAsWatered, getAiCare, updatePlant } = usePlants();
+  const { plants, markAsWatered, getAiCare, updatePlant, diagnosePlant } = usePlants();
   const { houses } = useHouses();
   const [plant, setPlant] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -60,6 +60,11 @@ export const PlantDetail = () => {
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [diagnosisPhotos, setDiagnosisPhotos] = useState([]);
+  const [diagnosing, setDiagnosing] = useState(false);
+  const [diagnosis, setDiagnosis] = useState(null);
 
   useEffect(() => {
     const found = plants.find((p) => p.id === Number(id));
@@ -108,6 +113,38 @@ export const PlantDetail = () => {
   const handleCancelEdit = () => {
     setEditing(false);
     setEditData({});
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setPhotoPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleDiagnose = async () => {
+    if (diagnosisPhotos.length === 0) {
+      alert('Ajoute au moins une photo pour le diagnostic.');
+      return;
+    }
+    setDiagnosing(true);
+    setDiagnosis(null);
+    try {
+      const formData = new FormData();
+      for (const file of diagnosisPhotos) {
+        formData.append('images[]', file);
+      }
+      const result = await diagnosePlant(plant.id, formData);
+      setDiagnosis(result.diagnosis);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erreur lors du diagnostic');
+    } finally {
+      setDiagnosing(false);
+    }
   };
 
   const handleChange = (field, value) => {
@@ -117,14 +154,26 @@ export const PlantDetail = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
+      let photoData = plant.photo;
+      if (photoFile) {
+        photoData = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(photoFile);
+        });
+      }
+
       const payload = {
         ...editData,
+        photo: photoData,
         frequency: Number(editData.frequency) || plant.frequency,
         repottingFrequency: editData.repottingFrequency ? Number(editData.repottingFrequency) : null,
         fertilizerFrequency: editData.fertilizerFrequency ? Number(editData.fertilizerFrequency) : null,
       };
       await updatePlant(plant.id, payload);
       setEditing(false);
+      setPhotoFile(null);
+      setPhotoPreview(null);
     } catch {
       alert('Erreur lors de la sauvegarde');
     } finally {
@@ -180,19 +229,34 @@ export const PlantDetail = () => {
         <Panel className="mb-6">
           <div className="flex flex-col md:flex-row gap-6">
             {/* Photo */}
-            <div
-              className="w-full md:w-64 h-48 md:h-64 rounded-2xl bg-gradient-to-br from-leaf to-sun flex items-center justify-center text-forest/50 font-semibold shrink-0"
-              style={
-                plant.photo
-                  ? {
-                      backgroundImage: `url(${plant.photo})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    }
-                  : {}
-              }
-            >
-              {!plant.photo && 'Pas de photo'}
+            <div className="relative w-full md:w-64 h-48 md:h-64 shrink-0">
+              <div
+                className="w-full h-full rounded-2xl bg-gradient-to-br from-leaf to-sun flex items-center justify-center text-forest/50 font-semibold"
+                style={
+                  (photoPreview || plant.photo)
+                    ? {
+                        backgroundImage: `url(${photoPreview || plant.photo})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }
+                    : {}
+                }
+              >
+                {!photoPreview && !plant.photo && 'Pas de photo'}
+              </div>
+              {editing && (
+                <label className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-2xl cursor-pointer hover:bg-black/40 transition-colors">
+                  <span className="text-white text-sm font-medium bg-black/50 px-3 py-1.5 rounded-full">
+                    {plant.photo || photoPreview ? 'Changer la photo' : 'Ajouter une photo'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
             </div>
 
             {/* Main info */}
@@ -558,6 +622,127 @@ export const PlantDetail = () => {
               Aucun conseil pour le moment. Clique sur "Remplir avec l'IA" pour obtenir des conseils personnalisés.
             </p>
           )}
+        </Panel>
+
+        {/* Diagnostic IA */}
+        <Panel className="mb-6">
+          <PanelHeader
+            title="Diagnostic"
+            subtitle="Envoie des photos de ta plante pour obtenir un diagnostic IA."
+          />
+
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) =>
+                  setDiagnosisPhotos([...Array.from(e.target.files || [])].slice(0, 5))
+                }
+                className="px-2 py-2 rounded-xl border border-forest/20 bg-white text-sm"
+              />
+              <p className="text-xs text-ink/50">
+                Jusqu'a 5 photos. Prends des photos nettes des feuilles ou tiges affectees.
+              </p>
+            </div>
+
+            {diagnosisPhotos.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {diagnosisPhotos.map((file, idx) => (
+                  <div
+                    key={idx}
+                    className="w-16 h-16 rounded-lg overflow-hidden border border-forest/20"
+                  >
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Diagnostic ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Button
+              size="sm"
+              onClick={handleDiagnose}
+              disabled={diagnosing || diagnosisPhotos.length === 0}
+            >
+              {diagnosing ? 'Analyse en cours...' : 'Lancer le diagnostic'}
+            </Button>
+
+            {diagnosis && (
+              <div
+                className={`rounded-2xl p-4 border ${
+                  diagnosis.healthy
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-red-50 border-red-200'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">
+                    {diagnosis.healthy ? '\u2705' : '\u26A0\uFE0F'}
+                  </span>
+                  <span
+                    className={`font-bold ${
+                      diagnosis.healthy ? 'text-green-700' : 'text-red-700'
+                    }`}
+                  >
+                    {diagnosis.diagnosis}
+                  </span>
+                </div>
+
+                {!diagnosis.healthy && diagnosis.urgency && (
+                  <span
+                    className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mb-3 ${
+                      diagnosis.urgency === 'élevée'
+                        ? 'bg-red-200 text-red-800'
+                        : diagnosis.urgency === 'moyenne'
+                          ? 'bg-yellow-200 text-yellow-800'
+                          : 'bg-green-200 text-green-800'
+                    }`}
+                  >
+                    Urgence : {diagnosis.urgency}
+                  </span>
+                )}
+
+                {diagnosis.problems?.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-ink mb-1">
+                      Problemes detectes :
+                    </p>
+                    <ul className="list-disc pl-5 text-sm text-ink/80 space-y-1">
+                      {diagnosis.problems.map((p, i) => (
+                        <li key={i}>{p}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {diagnosis.recommendations?.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-ink mb-1">
+                      Recommandations :
+                    </p>
+                    <ul className="space-y-2">
+                      {diagnosis.recommendations.map((rec, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-start gap-2 text-sm text-ink/80"
+                        >
+                          <span className="w-5 h-5 rounded-full bg-leaf/20 text-forest flex items-center justify-center shrink-0 text-xs font-bold mt-0.5">
+                            {idx + 1}
+                          </span>
+                          <span>{rec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </Panel>
       </div>
     </div>
