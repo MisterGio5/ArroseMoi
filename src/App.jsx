@@ -1,3 +1,4 @@
+import { Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { HouseProvider } from './contexts/HouseContext';
@@ -9,14 +10,52 @@ import { Dashboard } from './pages/Dashboard';
 import { Profile } from './pages/Profile';
 import { PlantDetail } from './pages/PlantDetail';
 import { Stats } from './pages/Stats';
-import { Blog } from './pages/Blog';
 import { Houses } from './pages/Houses';
 import { HouseDetail } from './pages/HouseDetail';
 import { JoinHouse } from './pages/JoinHouse';
 import { InstallPrompt } from './components/common/InstallPrompt';
+import { Reminders } from './pages/Reminders';
+import { Calendar } from './pages/Calendar';
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('[ArroseMoi] React crash:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '2rem', fontFamily: 'monospace' }}>
+          <h1 style={{ color: 'red' }}>ArroseMoi - Erreur</h1>
+          <p>L'application a crashé. Voici l'erreur :</p>
+          <pre style={{ background: '#fee', padding: '1rem', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>
+            {this.state.error?.message}
+            {'\n\n'}
+            {this.state.error?.stack}
+          </pre>
+          <button onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
+            style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+            Vider le cache et se reconnecter
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function App() {
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <AuthProvider>
         <HouseProvider>
@@ -50,18 +89,26 @@ function App() {
                 }
               />
               <Route
-                path="/stats"
+                path="/reminders"
                 element={
                   <ProtectedRoute>
-                    <Stats />
+                    <Reminders />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/blog"
+                path="/calendar"
                 element={
                   <ProtectedRoute>
-                    <Blog />
+                    <Calendar />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/stats"
+                element={
+                  <ProtectedRoute>
+                    <Stats />
                   </ProtectedRoute>
                 }
               />
@@ -96,6 +143,7 @@ function App() {
         </HouseProvider>
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

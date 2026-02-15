@@ -1,15 +1,13 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { usePlants } from '../contexts/PlantContext';
 import { Header } from '../components/layout/Header';
 import { Panel, PanelHeader } from '../components/layout/Panel';
 import { PlantCard } from '../components/plants/PlantCard';
 import { PlantForm } from '../components/plants/PlantForm';
 import { PlantStats } from '../components/plants/PlantStats';
-import { DuePlants } from '../components/plants/DuePlants';
 import { PlantFilters } from '../components/plants/PlantFilters';
 import { Button } from '../components/common/Button';
 import { isDue, nextWateringDate } from '../utils/dateUtils';
-import { subscribeToPush, unsubscribeFromPush, isPushSubscribed, sendTestNotification } from '../services/notifications';
 
 export const Dashboard = () => {
   const { plants } = usePlants();
@@ -76,56 +74,6 @@ export const Dashboard = () => {
     setEditingPlant(null);
   };
 
-  const [pushEnabled, setPushEnabled] = useState(false);
-  const [pushLoading, setPushLoading] = useState(false);
-  const [pushError, setPushError] = useState(null);
-  const [pushSupported, setPushSupported] = useState(true);
-
-  useEffect(() => {
-    const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    const supported = 'serviceWorker' in navigator && 'PushManager' in window && isSecure;
-    setPushSupported(supported);
-
-    if (supported) {
-      isPushSubscribed().then(setPushEnabled);
-    } else if (!isSecure) {
-      setPushError('HTTPS requis pour les notifications');
-    }
-  }, []);
-
-  const handleTogglePush = async () => {
-    setPushLoading(true);
-    setPushError(null);
-    try {
-      if (pushEnabled) {
-        await unsubscribeFromPush();
-        setPushEnabled(false);
-      } else {
-        await subscribeToPush();
-        setPushEnabled(true);
-      }
-    } catch (err) {
-      console.error('[ArroseMoi] Push error:', err);
-      setPushError(err.message || 'Erreur lors de la configuration des notifications');
-    } finally {
-      setPushLoading(false);
-    }
-  };
-
-  const [pushSuccess, setPushSuccess] = useState(null);
-
-  const handleTestNotification = async () => {
-    setPushError(null);
-    setPushSuccess(null);
-    try {
-      const res = await sendTestNotification();
-      setPushSuccess(res.data?.message || 'Notification envoyée !');
-      setTimeout(() => setPushSuccess(null), 5000);
-    } catch (err) {
-      setPushError(err.response?.data?.error || 'Erreur lors de l\'envoi de la notification test');
-    }
-  };
-
   return (
     <div className="min-h-screen p-4 md:p-8 relative">
       <div className="orb orb-one"></div>
@@ -146,25 +94,6 @@ export const Dashboard = () => {
             <p className="text-lg text-ink/80 mb-5 max-w-xl">
               Catalogue de plantes, fiches détaillées et rappels d'arrosage intelligents.
             </p>
-            <div className="flex flex-wrap gap-3 items-center">
-              <Button onClick={handleTogglePush} disabled={pushLoading || !pushSupported}>
-                {pushLoading ? 'Chargement...' : pushEnabled ? 'Désactiver les notifications' : 'Activer les notifications'}
-              </Button>
-              {pushEnabled && (
-                <Button variant="ghost" onClick={handleTestNotification}>
-                  Tester
-                </Button>
-              )}
-            </div>
-            {pushError && (
-              <p className="text-red-500 text-sm mt-2">{pushError}</p>
-            )}
-            {pushSuccess && (
-              <p className="text-green-600 text-sm mt-2">{pushSuccess}</p>
-            )}
-            {!pushSupported && !pushError && (
-              <p className="text-amber-600 text-sm mt-2">Notifications non disponibles (HTTPS requis ou navigateur non compatible)</p>
-            )}
           </div>
 
           <PlantStats />
@@ -221,14 +150,6 @@ export const Dashboard = () => {
             <PlantForm plant={editingPlant} onCancel={handleCancelEdit} />
           </Panel>
 
-          {/* Due Plants */}
-          <Panel>
-            <PanelHeader
-              title="À arroser aujourd'hui"
-              subtitle="Marque les plantes arrosées pour recalculer le prochain rappel."
-            />
-            <DuePlants />
-          </Panel>
         </main>
       </div>
     </div>

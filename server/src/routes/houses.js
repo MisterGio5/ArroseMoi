@@ -65,6 +65,107 @@ router.post('/', (req, res) => {
   res.status(201).json({ house });
 });
 
+// --- Specific routes (MUST be defined BEFORE /:houseId to avoid route conflicts) ---
+
+// GET /api/houses/invitations/pending
+router.get('/invitations/pending', (req, res) => {
+  const userEmail = db.prepare('SELECT email FROM users WHERE id = ?').get(req.user.id)?.email;
+  if (!userEmail) return res.json({ invitations: [] });
+
+  const invitations = db.prepare(`
+    SELECT hi.*, h.name as house_name, u.email as invited_by_email
+    FROM house_invitations hi
+    JOIN houses h ON h.id = hi.house_id
+    JOIN users u ON u.id = hi.invited_by
+    WHERE hi.invited_email = ? AND hi.status = 'pending' AND hi.expires_at > datetime('now')
+    ORDER BY hi.created_at DESC
+  `).all(userEmail.toLowerCase());
+
+  res.json({ invitations });
+});
+
+// POST /api/houses/invitations/:id/accept
+router.post('/invitations/:id/accept', (req, res) => {
+  const invitation = db.prepare('SELECT * FROM house_invitations WHERE id = ?').get(req.params.id);
+  if (!invitation) return res.status(404).json({ error: 'Invitation non trouvée' });
+
+  const userEmail = db.prepare('SELECT email FROM users WHERE id = ?').get(req.user.id)?.email;
+  if (!userEmail || userEmail.toLowerCase() !== invitation.invited_email.toLowerCase()) {
+    return res.status(403).json({ error: 'Cette invitation ne t\'est pas destinée' });
+  }
+
+  if (invitation.status !== 'pending') {
+    return res.status(400).json({ error: 'Cette invitation a déjà été traitée' });
+  }
+
+  const existing = getUserHouseMembership(req.user.id, invitation.house_id);
+  if (existing) {
+    db.prepare("UPDATE house_invitations SET status = 'accepted' WHERE id = ?").run(req.params.id);
+    return res.json({ message: 'Tu es déjà membre de cette maison' });
+  }
+
+  db.transaction(() => {
+    db.prepare(
+      'INSERT INTO house_members (house_id, user_id, role) VALUES (?, ?, ?)'
+    ).run(invitation.house_id, req.user.id, 'member');
+    db.prepare("UPDATE house_invitations SET status = 'accepted' WHERE id = ?").run(req.params.id);
+  })();
+
+  const house = db.prepare('SELECT * FROM houses WHERE id = ?').get(invitation.house_id);
+  res.json({ message: 'Invitation acceptée', house });
+});
+
+// POST /api/houses/invitations/:id/decline
+router.post('/invitations/:id/decline', (req, res) => {
+  const invitation = db.prepare('SELECT * FROM house_invitations WHERE id = ?').get(req.params.id);
+  if (!invitation) return res.status(404).json({ error: 'Invitation non trouvée' });
+
+  const userEmail = db.prepare('SELECT email FROM users WHERE id = ?').get(req.user.id)?.email;
+  if (!userEmail || userEmail.toLowerCase() !== invitation.invited_email.toLowerCase()) {
+    return res.status(403).json({ error: 'Cette invitation ne t\'est pas destinée' });
+  }
+
+  db.prepare("UPDATE house_invitations SET status = 'declined' WHERE id = ?").run(req.params.id);
+  res.json({ message: 'Invitation refusée' });
+});
+
+// POST /api/houses/join — join by code
+router.post('/join', (req, res) => {
+  const { code } = req.body;
+  if (!code || !code.trim()) {
+    return res.status(400).json({ error: 'Le code est requis' });
+  }
+
+  const house = db.prepare('SELECT * FROM houses WHERE invite_code = ?').get(code.trim().toUpperCase());
+  if (!house) {
+    return res.status(404).json({ error: 'Code d\'invitation invalide' });
+  }
+
+  const existing = getUserHouseMembership(req.user.id, house.id);
+  if (existing) {
+    return res.status(409).json({ error: 'Tu es déjà membre de cette maison' });
+  }
+
+  db.transaction(() => {
+    db.prepare(
+      'INSERT INTO house_members (house_id, user_id, role) VALUES (?, ?, ?)'
+    ).run(house.id, req.user.id, 'member');
+
+    // Accept any pending invitation for this user's email
+    const userEmail = db.prepare('SELECT email FROM users WHERE id = ?').get(req.user.id)?.email;
+    if (userEmail) {
+      db.prepare(`
+        UPDATE house_invitations SET status = 'accepted'
+        WHERE house_id = ? AND invited_email = ? AND status = 'pending'
+      `).run(house.id, userEmail.toLowerCase());
+    }
+  })();
+
+  res.json({ house: { ...house, role: 'member' } });
+});
+
+// --- Parameterized house routes (AFTER specific routes) ---
+
 // GET /api/houses/:houseId — house detail with members
 router.get('/:houseId', (req, res) => {
   const membership = getUserHouseMembership(req.user.id, req.params.houseId);
@@ -180,41 +281,6 @@ router.post('/:houseId/invite', (req, res) => {
   res.status(201).json({ message: 'Invitation envoyée' });
 });
 
-// POST /api/houses/join — join by code
-router.post('/join', (req, res) => {
-  const { code } = req.body;
-  if (!code || !code.trim()) {
-    return res.status(400).json({ error: 'Le code est requis' });
-  }
-
-  const house = db.prepare('SELECT * FROM houses WHERE invite_code = ?').get(code.trim().toUpperCase());
-  if (!house) {
-    return res.status(404).json({ error: 'Code d\'invitation invalide' });
-  }
-
-  const existing = getUserHouseMembership(req.user.id, house.id);
-  if (existing) {
-    return res.status(409).json({ error: 'Tu es déjà membre de cette maison' });
-  }
-
-  db.transaction(() => {
-    db.prepare(
-      'INSERT INTO house_members (house_id, user_id, role) VALUES (?, ?, ?)'
-    ).run(house.id, req.user.id, 'member');
-
-    // Accept any pending invitation for this user's email
-    const userEmail = db.prepare('SELECT email FROM users WHERE id = ?').get(req.user.id)?.email;
-    if (userEmail) {
-      db.prepare(`
-        UPDATE house_invitations SET status = 'accepted'
-        WHERE house_id = ? AND invited_email = ? AND status = 'pending'
-      `).run(house.id, userEmail.toLowerCase());
-    }
-  })();
-
-  res.json({ house: { ...house, role: 'member' } });
-});
-
 // DELETE /api/houses/:houseId/members/:userId — remove or leave
 router.delete('/:houseId/members/:userId', (req, res) => {
   const targetUserId = Number(req.params.userId);
@@ -263,70 +329,6 @@ router.post('/:houseId/regenerate-code', (req, res) => {
   db.prepare('UPDATE houses SET invite_code = ? WHERE id = ?').run(newCode, req.params.houseId);
 
   res.json({ invite_code: newCode });
-});
-
-// --- Pending invitations for current user ---
-
-// GET /api/houses/invitations/pending
-router.get('/invitations/pending', (req, res) => {
-  const userEmail = db.prepare('SELECT email FROM users WHERE id = ?').get(req.user.id)?.email;
-  if (!userEmail) return res.json({ invitations: [] });
-
-  const invitations = db.prepare(`
-    SELECT hi.*, h.name as house_name, u.email as invited_by_email
-    FROM house_invitations hi
-    JOIN houses h ON h.id = hi.house_id
-    JOIN users u ON u.id = hi.invited_by
-    WHERE hi.invited_email = ? AND hi.status = 'pending' AND hi.expires_at > datetime('now')
-    ORDER BY hi.created_at DESC
-  `).all(userEmail.toLowerCase());
-
-  res.json({ invitations });
-});
-
-// POST /api/houses/invitations/:id/accept
-router.post('/invitations/:id/accept', (req, res) => {
-  const invitation = db.prepare('SELECT * FROM house_invitations WHERE id = ?').get(req.params.id);
-  if (!invitation) return res.status(404).json({ error: 'Invitation non trouvée' });
-
-  const userEmail = db.prepare('SELECT email FROM users WHERE id = ?').get(req.user.id)?.email;
-  if (!userEmail || userEmail.toLowerCase() !== invitation.invited_email.toLowerCase()) {
-    return res.status(403).json({ error: 'Cette invitation ne t\'est pas destinée' });
-  }
-
-  if (invitation.status !== 'pending') {
-    return res.status(400).json({ error: 'Cette invitation a déjà été traitée' });
-  }
-
-  const existing = getUserHouseMembership(req.user.id, invitation.house_id);
-  if (existing) {
-    db.prepare("UPDATE house_invitations SET status = 'accepted' WHERE id = ?").run(req.params.id);
-    return res.json({ message: 'Tu es déjà membre de cette maison' });
-  }
-
-  db.transaction(() => {
-    db.prepare(
-      'INSERT INTO house_members (house_id, user_id, role) VALUES (?, ?, ?)'
-    ).run(invitation.house_id, req.user.id, 'member');
-    db.prepare("UPDATE house_invitations SET status = 'accepted' WHERE id = ?").run(req.params.id);
-  })();
-
-  const house = db.prepare('SELECT * FROM houses WHERE id = ?').get(invitation.house_id);
-  res.json({ message: 'Invitation acceptée', house });
-});
-
-// POST /api/houses/invitations/:id/decline
-router.post('/invitations/:id/decline', (req, res) => {
-  const invitation = db.prepare('SELECT * FROM house_invitations WHERE id = ?').get(req.params.id);
-  if (!invitation) return res.status(404).json({ error: 'Invitation non trouvée' });
-
-  const userEmail = db.prepare('SELECT email FROM users WHERE id = ?').get(req.user.id)?.email;
-  if (!userEmail || userEmail.toLowerCase() !== invitation.invited_email.toLowerCase()) {
-    return res.status(403).json({ error: 'Cette invitation ne t\'est pas destinée' });
-  }
-
-  db.prepare("UPDATE house_invitations SET status = 'declined' WHERE id = ?").run(req.params.id);
-  res.json({ message: 'Invitation refusée' });
 });
 
 module.exports = router;

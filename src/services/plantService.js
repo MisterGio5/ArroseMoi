@@ -41,6 +41,23 @@ export const plantService = {
     return response.data.plant;
   },
 
+  markAsRepotted: async (id) => {
+    const response = await api.patch(`/plants/${id}/repot`);
+    return response.data.plant;
+  },
+
+  markAsFertilized: async (id) => {
+    const response = await api.patch(`/plants/${id}/fertilize`);
+    return response.data.plant;
+  },
+
+  diagnosePlant: async (id, formData) => {
+    const response = await api.post(`/plants/${id}/diagnose`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
   identifyPlant: async (formData) => {
     const response = await api.post('/plants/identify', formData, {
       headers: {

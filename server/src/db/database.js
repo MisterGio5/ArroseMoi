@@ -183,6 +183,38 @@ function migrateExistingPlantsToDefaultHouse() {
 }
 migrateExistingPlantsToDefaultHouse();
 
+// Rescue orphan plants: assign plants with house_id=NULL to the user's first house
+function rescueOrphanPlants() {
+  const orphans = db.prepare(`
+    SELECT DISTINCT p.user_id FROM plants p
+    WHERE p.house_id IS NULL
+  `).all();
+
+  if (orphans.length === 0) return;
+
+  let rescued = 0;
+  for (const { user_id } of orphans) {
+    const firstHouse = db.prepare(`
+      SELECT h.id FROM houses h
+      JOIN house_members hm ON hm.house_id = h.id
+      WHERE hm.user_id = ?
+      ORDER BY h.created_at ASC LIMIT 1
+    `).get(user_id);
+
+    if (firstHouse) {
+      const result = db.prepare(
+        'UPDATE plants SET house_id = ? WHERE user_id = ? AND house_id IS NULL'
+      ).run(firstHouse.id, user_id);
+      rescued += result.changes;
+    }
+  }
+
+  if (rescued > 0) {
+    console.log(`Rescued ${rescued} orphan plant(s) into their owner's first house`);
+  }
+}
+rescueOrphanPlants();
+
 // --- Push subscriptions table ---
 db.exec(`
   CREATE TABLE IF NOT EXISTS push_subscriptions (
