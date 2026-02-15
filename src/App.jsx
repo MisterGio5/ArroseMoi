@@ -13,6 +13,7 @@ import { Stats } from './pages/Stats';
 import { Houses } from './pages/Houses';
 import { HouseDetail } from './pages/HouseDetail';
 import { JoinHouse } from './pages/JoinHouse';
+import { InstallPrompt } from './components/common/InstallPrompt';
 import { Reminders } from './pages/Reminders';
 import { Calendar } from './pages/Calendar';
 
@@ -137,6 +138,7 @@ function App() {
               />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
+            <InstallPrompt />
           </PlantProvider>
         </HouseProvider>
       </AuthProvider>
