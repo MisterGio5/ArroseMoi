@@ -122,6 +122,42 @@ export const PlantProvider = ({ children }) => {
     }
   };
 
+  const markAsRepotted = async (id) => {
+    try {
+      const updatedPlant = await plantService.markAsRepotted(id);
+      setPlants((prev) =>
+        prev.map((plant) => (plant.id === id ? updatedPlant : plant))
+      );
+      return updatedPlant;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const markAsFertilized = async (id) => {
+    try {
+      const updatedPlant = await plantService.markAsFertilized(id);
+      setPlants((prev) =>
+        prev.map((plant) => (plant.id === id ? updatedPlant : plant))
+      );
+      return updatedPlant;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const diagnosePlant = async (id, formData) => {
+    try {
+      const result = await plantService.diagnosePlant(id, formData);
+      return result;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
   const identifyPlant = async (formData) => {
     try {
       const result = await plantService.identifyPlant(formData);
@@ -141,10 +177,13 @@ export const PlantProvider = ({ children }) => {
     updatePlant,
     deletePlant,
     markAsWatered,
+    markAsRepotted,
+    markAsFertilized,
     toggleFavorite,
     duplicatePlant,
     identifyPlant,
     getAiCare,
+    diagnosePlant,
   };
 
   return <PlantContext.Provider value={value}>{children}</PlantContext.Provider>;

@@ -10,10 +10,11 @@ import { Dashboard } from './pages/Dashboard';
 import { Profile } from './pages/Profile';
 import { PlantDetail } from './pages/PlantDetail';
 import { Stats } from './pages/Stats';
-import { Blog } from './pages/Blog';
 import { Houses } from './pages/Houses';
 import { HouseDetail } from './pages/HouseDetail';
 import { JoinHouse } from './pages/JoinHouse';
+import { Reminders } from './pages/Reminders';
+import { Calendar } from './pages/Calendar';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -87,18 +88,26 @@ function App() {
                 }
               />
               <Route
-                path="/stats"
+                path="/reminders"
                 element={
                   <ProtectedRoute>
-                    <Stats />
+                    <Reminders />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/blog"
+                path="/calendar"
                 element={
                   <ProtectedRoute>
-                    <Blog />
+                    <Calendar />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/stats"
+                element={
+                  <ProtectedRoute>
+                    <Stats />
                   </ProtectedRoute>
                 }
               />

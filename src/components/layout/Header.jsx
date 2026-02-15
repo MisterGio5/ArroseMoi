@@ -5,9 +5,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const NAV_ITEMS = [
   { label: 'Mes Plantes', path: '/dashboard', icon: '🌿' },
+  { label: 'Rappels', path: '/reminders', icon: '🔔' },
+  { label: 'Calendrier', path: '/calendar', icon: '📅', badge: 'Beta' },
   { label: 'Mes Maisons', path: '/houses', icon: '🏠' },
   { label: 'Statistiques', path: '/stats', icon: '📊' },
-  { label: 'Blog', path: '/blog', icon: '📝' },
   { label: 'Mon Compte', path: '/profile', icon: '👤' },
 ];
 
@@ -51,7 +52,7 @@ export const Header = () => {
         {/* Desktop nav */}
         {isAuthenticated && (
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.map(({ label, path, icon }) => (
+            {NAV_ITEMS.map(({ label, path, icon, badge }) => (
               <button
                 key={path}
                 onClick={() => navigate(path)}
@@ -63,6 +64,11 @@ export const Header = () => {
               >
                 <span className="mr-1.5">{icon}</span>
                 {label}
+                {badge && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-sun/50 text-forest text-[10px] font-bold rounded-full uppercase">
+                    {badge}
+                  </span>
+                )}
                 {path === '/houses' && invitationCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                     {invitationCount}
@@ -130,7 +136,7 @@ export const Header = () => {
       {/* Mobile menu */}
       {isAuthenticated && menuOpen && (
         <nav className="md:hidden bg-card border border-forest/12 rounded-2xl shadow-xl p-3 mx-2 mb-4 space-y-1 animate-rise">
-          {NAV_ITEMS.map(({ label, path, icon }) => (
+          {NAV_ITEMS.map(({ label, path, icon, badge }) => (
             <button
               key={path}
               onClick={() => {
@@ -145,6 +151,11 @@ export const Header = () => {
             >
               <span className="mr-2">{icon}</span>
               {label}
+              {badge && (
+                <span className="ml-1 px-1.5 py-0.5 bg-sun/50 text-forest text-[10px] font-bold rounded-full uppercase">
+                  {badge}
+                </span>
+              )}
               {path === '/houses' && invitationCount > 0 && (
                 <span className="ml-2 inline-flex w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full items-center justify-center">
                   {invitationCount}

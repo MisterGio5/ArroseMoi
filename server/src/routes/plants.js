@@ -176,6 +176,30 @@ router.patch('/:id/water', (req, res) => {
   res.json({ plant: formatPlant(plant) });
 });
 
+// PATCH /api/plants/:id/repot
+router.patch('/:id/repot', (req, res) => {
+  const existing = findAccessiblePlant(req.params.id, req.user.id);
+  if (!existing) return res.status(404).json({ error: 'Plante non trouvée' });
+
+  db.prepare('UPDATE plants SET last_repotted = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    .run(new Date().toISOString(), req.params.id);
+
+  const plant = db.prepare('SELECT * FROM plants WHERE id = ?').get(req.params.id);
+  res.json({ plant: formatPlant(plant) });
+});
+
+// PATCH /api/plants/:id/fertilize
+router.patch('/:id/fertilize', (req, res) => {
+  const existing = findAccessiblePlant(req.params.id, req.user.id);
+  if (!existing) return res.status(404).json({ error: 'Plante non trouvée' });
+
+  db.prepare('UPDATE plants SET last_fertilized = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    .run(new Date().toISOString(), req.params.id);
+
+  const plant = db.prepare('SELECT * FROM plants WHERE id = ?').get(req.params.id);
+  res.json({ plant: formatPlant(plant) });
+});
+
 // PATCH /api/plants/:id/favorite
 router.patch('/:id/favorite', (req, res) => {
   const existing = findAccessiblePlant(req.params.id, req.user.id);
@@ -255,6 +279,81 @@ Réponds UNIQUEMENT avec un JSON valide:
   } catch (err) {
     console.error('AI care error:', err);
     res.status(500).json({ error: 'Erreur lors de la génération des conseils IA' });
+  }
+});
+
+// POST /api/plants/:id/diagnose
+router.post('/:id/diagnose', upload.array('images[]', 5), async (req, res) => {
+  try {
+    const plant = findAccessiblePlant(req.params.id, req.user.id);
+    if (!plant) return res.status(404).json({ error: 'Plante non trouvée' });
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'Aucune image fournie' });
+    }
+
+    const openaiKey = decrypt(
+      db.prepare('SELECT openai_api_key FROM users WHERE id = ?').get(req.user.id)?.openai_api_key
+    );
+    if (!openaiKey) {
+      return res.status(400).json({
+        error: 'Configure ta clé OpenAI dans ton profil pour utiliser le diagnostic IA.',
+      });
+    }
+
+    const imageContents = req.files.map((file) => ({
+      type: 'image_url',
+      image_url: {
+        url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+        detail: 'high',
+      },
+    }));
+
+    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiKey}` },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `Tu es un expert en phytopathologie (maladies des plantes). On te montre des photos d'une plante nommée "${plant.name}" (type: ${plant.type || 'non précisé'}).
+Analyse les photos pour identifier d'éventuels problèmes (maladies, parasites, carences, excès d'arrosage, brûlures, etc.).
+
+Réponds UNIQUEMENT avec un JSON valide:
+{
+  "healthy": true ou false,
+  "diagnosis": "Description courte du problème ou 'La plante semble en bonne santé'",
+  "problems": ["problème 1", "problème 2"],
+  "recommendations": ["recommandation 1", "recommandation 2", "recommandation 3"],
+  "urgency": "faible|moyenne|élevée"
+}`,
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: `Analyse cette plante "${plant.name}" et donne-moi un diagnostic.` },
+              ...imageContents,
+            ],
+          },
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      console.error('OpenAI diagnosis error:', await aiResponse.text().catch(() => ''));
+      return res.status(502).json({ error: "Erreur lors de l'appel à l'IA. Vérifie ta clé OpenAI." });
+    }
+
+    const aiData = await aiResponse.json();
+    const parsed = JSON.parse(aiData.choices[0].message.content);
+
+    res.json({ diagnosis: parsed });
+  } catch (err) {
+    console.error('Diagnose error:', err);
+    res.status(500).json({ error: 'Erreur lors du diagnostic' });
   }
 });
 
