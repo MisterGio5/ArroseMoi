@@ -29,13 +29,13 @@ function formatPlant(plant) {
   };
 }
 
-// Helper: find a plant the user has access to via house membership
+// Helper: find a plant the user has access to via house membership or ownership
 function findAccessiblePlant(plantId, userId) {
   return db.prepare(`
     SELECT p.* FROM plants p
-    JOIN house_members hm ON hm.house_id = p.house_id AND hm.user_id = ?
-    WHERE p.id = ?
-  `).get(userId, plantId);
+    LEFT JOIN house_members hm ON hm.house_id = p.house_id AND hm.user_id = ?
+    WHERE p.id = ? AND (hm.user_id IS NOT NULL OR (p.user_id = ? AND p.house_id IS NULL))
+  `).get(userId, plantId, userId);
 }
 
 // Helper: check house membership
@@ -56,13 +56,13 @@ router.get('/', (req, res) => {
 
     plants = db.prepare('SELECT * FROM plants WHERE house_id = ? ORDER BY created_at DESC').all(houseId);
   } else {
-    // All plants from all houses the user belongs to
+    // All plants from all houses the user belongs to + orphan plants (house_id NULL)
     plants = db.prepare(`
       SELECT p.* FROM plants p
-      JOIN house_members hm ON hm.house_id = p.house_id
-      WHERE hm.user_id = ?
+      LEFT JOIN house_members hm ON hm.house_id = p.house_id AND hm.user_id = ?
+      WHERE hm.user_id IS NOT NULL OR (p.user_id = ? AND p.house_id IS NULL)
       ORDER BY p.created_at DESC
-    `).all(req.user.id);
+    `).all(req.user.id, req.user.id);
   }
 
   res.json({ plants: plants.map(formatPlant) });
