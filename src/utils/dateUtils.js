@@ -21,8 +21,13 @@ export const daysBetween = (a, b) => {
 };
 
 export const nextWateringDate = (plant) => {
-  const lastWatered = parseISO(plant.lastWatered || plant.last_watered);
-  return addDays(lastWatered, plant.frequency);
+  const raw = plant.lastWatered || plant.last_watered;
+  if (!raw) {
+    // No watering recorded — treat as overdue (epoch)
+    return new Date(0);
+  }
+  const lastWatered = parseISO(raw);
+  return addDays(lastWatered, plant.frequency || 7);
 };
 
 export const isDue = (plant, today = new Date()) => {
