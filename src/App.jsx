@@ -13,6 +13,7 @@ import { Blog } from './pages/Blog';
 import { Houses } from './pages/Houses';
 import { HouseDetail } from './pages/HouseDetail';
 import { JoinHouse } from './pages/JoinHouse';
+import { InstallPrompt } from './components/common/InstallPrompt';
 
 function App() {
   return (
@@ -90,6 +91,7 @@ function App() {
               />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
+            <InstallPrompt />
           </PlantProvider>
         </HouseProvider>
       </AuthProvider>

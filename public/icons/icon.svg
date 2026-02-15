@@ -1,11 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#2d5016"/>
-  <g transform="translate(256,280)">
-    <!-- Water drop -->
-    <path d="M0-120 C-10-80 -50-20 -50 30 C-50 70 -28 100 0 100 C28 100 50 70 50 30 C50-20 10-80 0-120Z" fill="#7dd3fc" opacity="0.9"/>
-    <!-- Leaf left -->
-    <path d="M-20 40 C-80-10 -100-80 -60-120 C-40-100 0-60 -20 40Z" fill="#86efac" opacity="0.85"/>
-    <!-- Leaf right -->
-    <path d="M20 40 C80-10 100-80 60-120 C40-100 0-60 20 40Z" fill="#4ade80" opacity="0.85"/>
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#f5f1e4"/>
+  <!-- Green border -->
+  <circle cx="256" cy="256" r="230" fill="none" stroke="#6ba55f" stroke-width="14"/>
+  <!-- Inner fill -->
+  <circle cx="256" cy="256" r="218" fill="#e1f0d7"/>
+  <!-- Pot rim -->
+  <rect x="165" y="290" width="182" height="25" rx="4" fill="#af7040" stroke="#644023" stroke-width="2.5"/>
+  <!-- Pot body -->
+  <polygon points="172,313 340,313 320,395 192,395" fill="#be7d4b" stroke="#644023" stroke-width="2.5"/>
+  <!-- Pot highlight -->
+  <line x1="205" y1="320" x2="210" y2="385" stroke="#d7a073" stroke-width="5" opacity="0.7"/>
+  <!-- Roots -->
+  <g stroke="#466a3c" stroke-width="2.5" stroke-linecap="round">
+    <line x1="231" y1="393" x2="228" y2="415"/>
+    <line x1="246" y1="393" x2="244" y2="415"/>
+    <line x1="261" y1="393" x2="263" y2="415"/>
+    <line x1="276" y1="393" x2="279" y2="415"/>
+    <line x1="291" y1="393" x2="294" y2="412"/>
   </g>
+  <!-- Stems -->
+  <g stroke="#376e37" stroke-width="3.5" stroke-linecap="round">
+    <line x1="256" y1="295" x2="256" y2="170"/>
+    <line x1="245" y1="290" x2="195" y2="175"/>
+    <line x1="268" y1="290" x2="315" y2="175"/>
+    <line x1="235" y1="292" x2="165" y2="205"/>
+    <line x1="278" y1="292" x2="345" y2="205"/>
+  </g>
+  <!-- Leaves -->
+  <ellipse cx="256" cy="145" rx="22" ry="35" fill="#327d41" stroke="#235a2d" stroke-width="2"/>
+  <ellipse cx="205" cy="162" rx="20" ry="32" transform="rotate(-25,205,162)" fill="#4b9b55" stroke="#235a2d" stroke-width="2"/>
+  <ellipse cx="307" cy="162" rx="20" ry="32" transform="rotate(25,307,162)" fill="#327d41" stroke="#235a2d" stroke-width="2"/>
+  <ellipse cx="172" cy="192" rx="17" ry="26" transform="rotate(-40,172,192)" fill="#69b46e" stroke="#235a2d" stroke-width="2"/>
+  <ellipse cx="340" cy="192" rx="17" ry="26" transform="rotate(40,340,192)" fill="#4b9b55" stroke="#235a2d" stroke-width="2"/>
+  <!-- Small side leaves -->
+  <ellipse cx="200" cy="250" rx="12" ry="16" transform="rotate(-20,200,250)" fill="#69b46e" stroke="#235a2d" stroke-width="1.5"/>
+  <ellipse cx="312" cy="250" rx="12" ry="16" transform="rotate(20,312,250)" fill="#69b46e" stroke="#235a2d" stroke-width="1.5"/>
 </svg>
