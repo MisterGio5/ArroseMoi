@@ -48,5 +48,9 @@ Thumbs.db
 *.tmp
 temp/
 
+# Capacitor native platforms (generated)
+android/
+ios/
+
 # Claude Code
 .claude/

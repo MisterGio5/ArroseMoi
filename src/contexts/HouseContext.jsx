@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { houseService } from '../services/houseService';
 import { useAuth } from './AuthContext';
+import { storage } from '../lib/native/storage';
 
 const HouseContext = createContext(null);
 
@@ -27,7 +28,7 @@ export const HouseProvider = ({ children }) => {
       setHouses(data);
 
       // Restore saved house selection
-      const saved = localStorage.getItem('currentHouseId');
+      const saved = await storage.getItem('currentHouseId');
       if (saved && data.find((h) => h.id === Number(saved))) {
         setCurrentHouseId(Number(saved));
       }
@@ -53,12 +54,12 @@ export const HouseProvider = ({ children }) => {
     loadPendingInvitations();
   }, [loadHouses, loadPendingInvitations]);
 
-  const switchHouse = (houseId) => {
+  const switchHouse = async (houseId) => {
     setCurrentHouseId(houseId);
     if (houseId) {
-      localStorage.setItem('currentHouseId', String(houseId));
+      await storage.setItem('currentHouseId', String(houseId));
     } else {
-      localStorage.removeItem('currentHouseId');
+      await storage.removeItem('currentHouseId');
     }
   };
 

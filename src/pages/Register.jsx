@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
+import { getUserMessage } from '../utils/errorUtils';
 
 export const Register = () => {
   const [email, setEmail] = useState('');
@@ -34,7 +35,7 @@ export const Register = () => {
       await register(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Erreur lors de l\'inscription');
+      setError(getUserMessage(err, 'Erreur lors de l\'inscription'));
     } finally {
       setLoading(false);
     }

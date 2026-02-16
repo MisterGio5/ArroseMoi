@@ -16,13 +16,23 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = authService.getToken();
-    const currentUser = authService.getCurrentUser();
-    if (token && currentUser) {
-      setUser(currentUser);
-    }
-    setLoading(false);
+    // Charge le token et l'utilisateur depuis le storage (async pour Capacitor)
+    const init = async () => {
+      try {
+        const token = await authService.initToken();
+        if (token) {
+          const currentUser = await authService.getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+          }
+        }
+      } catch (err) {
+        console.error('[ArroseMoi] Auth init error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
   const login = async (email, password) => {
@@ -35,8 +45,8 @@ export const AuthProvider = ({ children }) => {
     setUser(user);
   };
 
-  const logout = () => {
-    authService.logout();
+  const logout = async () => {
+    await authService.logout();
     setUser(null);
   };
 

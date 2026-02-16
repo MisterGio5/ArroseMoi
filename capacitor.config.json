@@ -1,0 +1,15 @@
+{
+  "appId": "com.arrosemoi.app",
+  "appName": "ArroseMoi",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#f0f4e8",
+      "showSpinner": false
+    }
+  }
+}

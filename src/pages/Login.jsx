@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
+import { getUserMessage } from '../utils/errorUtils';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -22,7 +23,7 @@ export const Login = () => {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Identifiants incorrects');
+      setError(getUserMessage(err, 'Identifiants incorrects'));
     } finally {
       setLoading(false);
     }

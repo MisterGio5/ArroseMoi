@@ -1,148 +1,117 @@
-import { Component } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { HouseProvider } from './contexts/HouseContext';
 import { PlantProvider } from './contexts/PlantContext';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
-import { Dashboard } from './pages/Dashboard';
-import { Profile } from './pages/Profile';
-import { PlantDetail } from './pages/PlantDetail';
-import { Stats } from './pages/Stats';
-import { Houses } from './pages/Houses';
-import { HouseDetail } from './pages/HouseDetail';
-import { JoinHouse } from './pages/JoinHouse';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { LoadingSpinner } from './components/common/LoadingSpinner';
 import { InstallPrompt } from './components/common/InstallPrompt';
-import { Reminders } from './pages/Reminders';
-import { Calendar } from './pages/Calendar';
 
-class ErrorBoundary extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error('[ArroseMoi] React crash:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: '2rem', fontFamily: 'monospace' }}>
-          <h1 style={{ color: 'red' }}>ArroseMoi - Erreur</h1>
-          <p>L'application a crashé. Voici l'erreur :</p>
-          <pre style={{ background: '#fee', padding: '1rem', borderRadius: '8px', whiteSpace: 'pre-wrap' }}>
-            {this.state.error?.message}
-            {'\n\n'}
-            {this.state.error?.stack}
-          </pre>
-          <button onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
-            style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
-            Vider le cache et se reconnecter
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
+const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const Register = lazy(() => import('./pages/Register').then(m => ({ default: m.Register })));
+const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
+const PlantDetail = lazy(() => import('./pages/PlantDetail').then(m => ({ default: m.PlantDetail })));
+const Stats = lazy(() => import('./pages/Stats').then(m => ({ default: m.Stats })));
+const Houses = lazy(() => import('./pages/Houses').then(m => ({ default: m.Houses })));
+const HouseDetail = lazy(() => import('./pages/HouseDetail').then(m => ({ default: m.HouseDetail })));
+const JoinHouse = lazy(() => import('./pages/JoinHouse').then(m => ({ default: m.JoinHouse })));
+const Reminders = lazy(() => import('./pages/Reminders').then(m => ({ default: m.Reminders })));
+const Calendar = lazy(() => import('./pages/Calendar').then(m => ({ default: m.Calendar })));
 
 function App() {
   return (
     <ErrorBoundary>
-    <BrowserRouter>
-      <AuthProvider>
-        <HouseProvider>
-          <PlantProvider>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/plant/:id"
-                element={
-                  <ProtectedRoute>
-                    <PlantDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reminders"
-                element={
-                  <ProtectedRoute>
-                    <Reminders />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/calendar"
-                element={
-                  <ProtectedRoute>
-                    <Calendar />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/stats"
-                element={
-                  <ProtectedRoute>
-                    <Stats />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/houses"
-                element={
-                  <ProtectedRoute>
-                    <Houses />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/houses/:houseId"
-                element={
-                  <ProtectedRoute>
-                    <HouseDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/join/:code"
-                element={
-                  <ProtectedRoute>
-                    <JoinHouse />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-            <InstallPrompt />
-          </PlantProvider>
-        </HouseProvider>
-      </AuthProvider>
-    </BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
+          <HouseProvider>
+            <PlantProvider>
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/plant/:id"
+                    element={
+                      <ProtectedRoute>
+                        <PlantDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reminders"
+                    element={
+                      <ProtectedRoute>
+                        <Reminders />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/calendar"
+                    element={
+                      <ProtectedRoute>
+                        <Calendar />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/stats"
+                    element={
+                      <ProtectedRoute>
+                        <Stats />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/houses"
+                    element={
+                      <ProtectedRoute>
+                        <Houses />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/houses/:houseId"
+                    element={
+                      <ProtectedRoute>
+                        <HouseDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/join/:code"
+                    element={
+                      <ProtectedRoute>
+                        <JoinHouse />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+              </Suspense>
+              <InstallPrompt />
+            </PlantProvider>
+          </HouseProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </ErrorBoundary>
   );
 }
