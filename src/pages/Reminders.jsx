@@ -4,7 +4,7 @@ import { usePlants } from '../contexts/PlantContext';
 import { Header } from '../components/layout/Header';
 import { Panel, PanelHeader } from '../components/layout/Panel';
 import { Button } from '../components/common/Button';
-import { isDue, isRepottingDue, isFertilizerDue } from '../utils/dateUtils';
+import { isDue, isRepottingDue, isFertilizerDue, describePlant } from '../utils/dateUtils';
 import { PLANT_TYPES } from '../utils/constants';
 import {
   subscribeToPush,
@@ -13,7 +13,7 @@ import {
   sendTestNotification,
 } from '../services/notifications';
 
-const ReminderSection = ({ title, subtitle, icon, items, actionLabel, onAction, navigate }) => (
+const ReminderSection = ({ title, subtitle, icon, items, actionLabel, onAction, navigate, getSubtitle }) => (
   <Panel className="mb-6">
     <PanelHeader title={`${icon} ${title}`} subtitle={subtitle} />
     {items.length === 0 ? (
@@ -52,7 +52,9 @@ const ReminderSection = ({ title, subtitle, icon, items, actionLabel, onAction, 
               )}
               <div className="min-w-0">
                 <p className="font-medium text-ink truncate">{plant.name}</p>
-                <p className="text-xs text-ink/50">{PLANT_TYPES[plant.type] || plant.type}</p>
+                <p className="text-xs text-ink/50">
+                  {getSubtitle ? getSubtitle(plant) : (PLANT_TYPES[plant.type] || plant.type)}
+                </p>
               </div>
             </div>
             <Button
@@ -191,6 +193,7 @@ export const Reminders = () => {
           actionLabel="Arrosee"
           onAction={(id) => markAsWatered(id)}
           navigate={navigate}
+          getSubtitle={(plant) => `${PLANT_TYPES[plant.type] || plant.type} • ${describePlant(plant)}`}
         />
 
         <ReminderSection

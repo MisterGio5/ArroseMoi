@@ -1,6 +1,6 @@
 import { usePlants } from '../../contexts/PlantContext';
 import { Button } from '../common/Button';
-import { isDue, formatDate } from '../../utils/dateUtils';
+import { isDue, describePlant } from '../../utils/dateUtils';
 import { PLANT_TYPES } from '../../utils/constants';
 
 export const DuePlants = () => {
@@ -47,8 +47,7 @@ export const DuePlants = () => {
           <div>
             <strong className="text-ink block">{plant.name}</strong>
             <span className="text-sm text-ink/70">
-              {PLANT_TYPES[plant.type] || plant.type} • Dernier arrosage :{' '}
-              {formatDate(plant.lastWatered || plant.last_watered)}
+              {PLANT_TYPES[plant.type] || plant.type} • {describePlant(plant)}
             </span>
           </div>
           <Button size="sm" onClick={() => handleWater(plant.id)}>

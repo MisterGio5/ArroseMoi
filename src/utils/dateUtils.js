@@ -23,8 +23,8 @@ export const daysBetween = (a, b) => {
 export const nextWateringDate = (plant) => {
   const raw = plant.lastWatered || plant.last_watered;
   if (!raw) {
-    // No watering recorded — treat as overdue (epoch)
-    return new Date(0);
+    // Jamais arrosée — due aujourd'hui
+    return new Date();
   }
   const lastWatered = parseISO(raw);
   return addDays(lastWatered, plant.frequency || 7);
@@ -41,9 +41,16 @@ export const isDue = (plant, today = new Date()) => {
 export const describePlant = (plant) => {
   const next = nextWateringDate(plant);
   const today = new Date();
-  const days = daysBetween(today, next);
+  // Normaliser à minuit pour un calcul en jours entiers propre
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const nextStart = new Date(next.getFullYear(), next.getMonth(), next.getDate());
+  const days = differenceInDays(nextStart, todayStart);
 
-  if (isDue(plant)) return "À arroser aujourd'hui";
+  if (days < 0) {
+    const overdueDays = -days;
+    return `En retard depuis ${overdueDays} jour${overdueDays > 1 ? 's' : ''}`;
+  }
+  if (days === 0) return "À arroser aujourd'hui";
   if (days === 1) return "À arroser demain";
   return `Prochain arrosage dans ${days} jours`;
 };

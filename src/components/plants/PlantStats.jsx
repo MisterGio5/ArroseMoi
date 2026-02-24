@@ -1,5 +1,5 @@
 import { usePlants } from '../../contexts/PlantContext';
-import { isDue, nextWateringDate, formatDate } from '../../utils/dateUtils';
+import { isDue, nextWateringDate, formatDate, describePlant } from '../../utils/dateUtils';
 
 export const PlantStats = () => {
   const { plants } = usePlants();
@@ -31,7 +31,11 @@ export const PlantStats = () => {
 
       <div>
         <span className="block text-3xl md:text-4xl font-bold text-forest">
-          {nextReminders.length > 0 ? formatDate(nextReminders[0].nextDate) : '-'}
+          {nextReminders.length > 0
+            ? isDue(nextReminders[0])
+              ? 'Aujourd\'hui'
+              : formatDate(nextReminders[0].nextDate)
+            : '-'}
         </span>
         <span className="block text-sm text-ink/65">Prochain rappel</span>
       </div>
@@ -44,7 +48,9 @@ export const PlantStats = () => {
           {nextReminders.map((plant) => (
             <li key={plant.id} className="flex justify-between gap-2">
               <span className="truncate">{plant.name}</span>
-              <span className="whitespace-nowrap">{formatDate(plant.nextDate)}</span>
+              <span className="whitespace-nowrap">
+                {isDue(plant) ? describePlant(plant) : formatDate(plant.nextDate)}
+              </span>
             </li>
           ))}
         </ul>
